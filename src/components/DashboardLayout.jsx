@@ -212,7 +212,7 @@ export default function DashboardLayout({ children }) {
       </div>
 
       {/* Área principal */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex w-full overflow-auto flex-col">
         {/* Header desktop (no mobile o header é a topbar fixa acima) */}
         <header className="hidden md:flex bg-white shadow-sm px-4 md:px-6 py-3 items-center justify-between w-full sticky top-0 z-20">
           <h2 className="text-lg md:text-xl font-semibold text-gray-800">
@@ -237,7 +237,7 @@ export default function DashboardLayout({ children }) {
         <div className="md:hidden h-14 shrink-0" />
 
         {/* Conteúdo: rolagem vertical aqui; mata overflow-x na página */}
-        <main className="p-4 md:p-6 flex-1 overflow-y-auto overflow-x-hidden">
+        <main className="p-4 md:p-6 flex-1 overflow-y-auto overflow-x-auto">
           {children}
           {/* dica: dentro dos seus cards/tabelas, use overflow-x-auto para tabelas largas */}
         </main>
