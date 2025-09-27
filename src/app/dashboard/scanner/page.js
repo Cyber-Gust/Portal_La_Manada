@@ -249,15 +249,16 @@ export default function ScannerPage() {
             <QrCode className="mr-3 shrink-0" /> <span className="truncate">Scanner La Manada</span>
           </h1>
 
-          {err && (
+          {/* Alert de erro (não quebra se 'err' não existir) */}
+          {(typeof err !== "undefined" && err) ? (
             <div className="mb-6 rounded-lg border border-red-200 bg-red-50 text-red-700 px-4 py-3">
-              {err}
+              {String(err)}
             </div>
-          )}
+          ) : null}
 
           {/* Barra de controle */}
           <div className="bg-white p-4 rounded-lg shadow mb-6 flex flex-wrap items-center justify-between gap-3">
-            {/* Bloco esquerdo */}
+            {/* Esquerda */}
             <div className="flex items-center gap-3 flex-wrap min-w-0">
               {/* Seletor de câmera */}
               <div className="flex items-center gap-2">
@@ -404,4 +405,5 @@ export default function ScannerPage() {
       </DashboardLayout>
     </RequireAuth>
   );
+
 }
