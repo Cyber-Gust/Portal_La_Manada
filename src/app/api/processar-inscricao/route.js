@@ -1,4 +1,3 @@
-// app/api/processar-inscricao/route.js
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import { ensureAttendee } from '../../../lib/commerce';
@@ -20,20 +19,30 @@ export async function POST(request) {
     const name = `${nome ?? ''} ${sobrenome ?? ''}`.trim();
     const cpfCnpjClean = onlyDigits(cpfCnpj);
     const phoneClean = onlyDigits(telefone);
+    
+    // Log the data being processed for debugging
+    console.log('[INSCRICAO][INPUT]', { name, email, cpfCnpjClean, phoneClean });
 
     if (!name || !email || !cpfCnpjClean) {
-      return NextResponse.json({ error: 'Dados inválidos.' }, { status: 400 });
+      console.error('[INSCRICAO][VALIDATION ERROR] Required fields missing.');
+      // Mensagem de erro mais clara para o cliente
+      return NextResponse.json({ error: 'Nome, E-mail ou CPF/CNPJ ausentes ou inválidos.' }, { status: 400 });
     }
 
-    const { data } = await asaasApi.post('/customers', {
+    const customerPayload = {
       name,
       email,
       cpfCnpj: cpfCnpjClean,
       mobilePhone: phoneClean,
       // opcional: postalCode, address, addressNumber...
-    });
+    };
+
+    console.log('[INSCRICAO][ASAAS SEND]', customerPayload);
+    
+    const { data } = await asaasApi.post('/customers', customerPayload);
 
     if (!data?.id) {
+      console.error('[INSCRICAO][ASAAS FAIL] Customer ID missing in response.');
       return NextResponse.json({ error: 'Falha ao criar cliente no Asaas.' }, { status: 502 });
     }
 
@@ -52,11 +61,23 @@ export async function POST(request) {
     } catch (e) {
       console.warn('[ensureAttendee][warn]', e?.message || e);
     }
+    
+    console.log('[INSCRICAO][SUCCESS]', { customerId: data.id, attendeeId });
 
     return NextResponse.json({ customerId: data.id, attendeeId });
   } catch (err) {
     const status = err?.response?.status || 500;
-    const msg = err?.response?.data?.errors?.[0]?.description || err.message || 'Erro inesperado';
+    const firstError = err?.response?.data?.errors?.[0];
+    
+    // Log detailed error from Asaas response no console
+    if (firstError) {
+        console.error('[INSCRICAO][ASAAS API ERROR]', status, firstError);
+    } else {
+        console.error('[INSCRICAO][UNEXPECTED ERROR]', status, err.message);
+    }
+    
+    // Mensagem amigável para o cliente (inclui a descrição do erro Asaas)
+    const msg = firstError?.description || err.message || 'Erro inesperado ao processar a inscrição.';
     return NextResponse.json({ error: msg }, { status });
   }
 }
