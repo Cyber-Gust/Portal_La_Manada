@@ -271,177 +271,183 @@ export default function MembrosPage() {
   }
 
   return (
-  <RequireAuth fallback={<div className="p-6">Verificando acesso…</div>}>
-    <DashboardLayout>
-      {/* wrapper pra evitar overflow horizontal */}
-      <div className="w-full min-w-0">
-        <MemberFormModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onSave={handleMemberSaved}
-          initialData={currentMember}
-        />
+    <RequireAuth fallback={<div className="p-6">Verificando acesso…</div>}>
+      <DashboardLayout>
+        {/* Wrapper raiz pra não vazar pro lado */}
+        <div className="w-full min-w-0">
+          <MemberFormModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onSave={handleMemberSaved}
+            initialData={currentMember}
+          />
 
-        <h1 className="text-3xl font-extrabold text-gray-800 mb-6 flex items-center min-w-0">
-          <User className="mr-3 shrink-0" /> <span className="truncate">Cadastros do Evento ({count})</span>
-        </h1>
+          <h1 className="text-3xl font-extrabold text-gray-800 mb-6 flex items-center min-w-0">
+            <User className="mr-3 shrink-0" /> <span className="truncate">Cadastros do Evento ({count})</span>
+          </h1>
 
-        {/* Alert de erro */}
-        {err && (
-          <div className="mb-4 rounded border border-red-200 bg-red-50 text-red-700 px-4 py-3">
-            {err}
-          </div>
-        )}
+          {/* Alert de erro (não quebra se 'err' não existir) */}
+          {(typeof err !== "undefined" && err) ? (
+            <div className="mb-4 rounded border border-red-200 bg-red-50 text-red-700 px-4 py-3">
+              {String(err)}
+            </div>
+          ) : null}
 
-        {/* Barra de Ações */}
-        <div className="flex flex-wrap lg:items-center lg:justify-between gap-3 bg-white p-4 rounded-lg shadow-md mb-6 overflow-x-auto">
-          <div className="flex flex-wrap items-center gap-3 min-w-0">
-            <div className="flex items-center border rounded-lg px-3 min-w-0 max-w-full">
-              <Search size={16} className="text-gray-400 mr-2 shrink-0" />
-              <input
-                value={q}
-                onChange={(e)=>setQ(e.target.value)}
-                placeholder="Buscar por nome, email ou telefone"
-                className="p-2 outline-none w-[220px] sm:w-[280px] md:w-[360px] min-w-0"
-              />
+          {/* Barra de Ações */}
+          <div className="flex flex-wrap lg:items-center lg:justify-between gap-3 bg-white p-4 rounded-lg shadow-md mb-6 overflow-x-auto">
+            <div className="flex flex-wrap items-center gap-3 min-w-0">
+              <div className="flex items-center border rounded-lg px-3 min-w-0 max-w-full">
+                <Search size={16} className="text-gray-400 mr-2 shrink-0" />
+                <input
+                  value={q}
+                  onChange={(e)=>setQ(e.target.value)}
+                  placeholder="Buscar por nome, email ou telefone"
+                  className="p-2 outline-none w-[220px] sm:w-[280px] md:w-[360px] min-w-0"
+                />
+              </div>
+
+              <button
+                onClick={fetchMembers}
+                className="flex items-center px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors shrink-0"
+                title="Atualizar lista"
+              >
+                <RefreshCw size={18} className="mr-2" />
+                Atualizar
+              </button>
+
+              <button
+                onClick={handleExportCsv}
+                className="flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors shrink-0"
+                title="Exportar CSV"
+              >
+                <Download size={18} className="mr-2" />
+                Exportar CSV
+              </button>
+
+              <button
+                onClick={handleOpenCreateModal}
+                className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors shrink-0"
+              >
+                <Plus size={18} className="mr-2" />
+                Novo Cadastro
+              </button>
             </div>
 
-            <button
-              onClick={fetchMembers}
-              className="flex items-center px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors shrink-0"
-              title="Atualizar lista"
-            >
-              <RefreshCw size={18} className="mr-2" />
-              Atualizar
-            </button>
-
-            <button
-              onClick={handleExportCsv}
-              className="flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors shrink-0"
-              title="Exportar CSV"
-            >
-              <Download size={18} className="mr-2" />
-              Exportar CSV
-            </button>
-
-            <button
-              onClick={handleOpenCreateModal}
-              className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors shrink-0"
-            >
-              <Plus size={18} className="mr-2" />
-              Novo Cadastro
-            </button>
+            {/* Page size */}
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-sm text-gray-600">Itens por página:</span>
+              <select
+                value={limit}
+                onChange={(e) => { setLimit(parseInt(e.target.value, 10)); setPage(1); }}
+                className="border rounded-lg p-2 focus:ring-orange-500 focus:border-orange-500"
+              >
+                {[10,20,50,100].map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
           </div>
 
-          {/* Page size */}
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-sm text-gray-600">Itens por página:</span>
-            <select
-              value={limit}
-              onChange={(e) => { setLimit(parseInt(e.target.value, 10)); setPage(1); }}
-              className="border rounded-lg p-2 focus:ring-orange-500 focus:border-orange-500"
-            >
-              {[10,20,50,100].map(n => <option key={n} value={n}>{n}</option>)}
-            </select>
-          </div>
-        </div>
-
-        {/* Tabela */}
-        <div className="overflow-x-auto bg-white rounded-lg shadow-xl">
-          <table className="min-w-full table-fixed divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[18%]">Nome</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[14%]">Telefone</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[28%]">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[10%]">Camisa</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[12%]">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[18%]">Como conheceu</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[10%]">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {members.map((m) => (
-                <tr key={m.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    <span className="truncate block">{m.name}</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatPhone(m.phone)}</td>
-
-                  {/* EMAIL truncável */}
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    <div className="flex items-center min-w-0">
-                      <Mail size={16} className="mr-2 shrink-0" />
-                      <span className="truncate block max-w-[260px]">{m.email}</span>
-                    </div>
-                  </td>
-
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{m.shirt_size}</td>
-
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                      m.is_legendario ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      <Zap size={14} className="mr-1" />
-                      {m.is_legendario ? 'Legendário' : 'Novo'}
-                    </span>
-                  </td>
-
-                  {/* REFERRAL com quebra se precisar */}
-                  <td className="px-6 py-4 text-sm text-gray-500 whitespace-normal break-words">
-                    <span className="block max-w-[260px]">{m.referral_source || '—'}</span>
-                  </td>
-
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3">
-                    <button
-                      onClick={() => setCurrentMember(m) || setIsModalOpen(true)}
-                      className="text-blue-600 hover:text-blue-900 transition-colors"
-                      title="Editar"
-                    >
-                      <Edit size={16} className="inline mr-1" /> Editar
-                    </button>
-                    <button
-                      onClick={() => handleDelete(m.id)}
-                      className="text-red-600 hover:text-red-800 transition-colors"
-                      title="Excluir"
-                    >
-                      Remover
-                    </button>
-                  </td>
+          {/* Tabela */}
+          <div className="overflow-x-auto bg-white rounded-lg shadow-xl">
+            <table className="min-w-full table-fixed divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[18%]">Nome</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[14%]">Telefone</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[28%]">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[10%]">Camisa</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[12%]">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[18%]">Como conheceu</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[10%]">Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {members.map((m) => (
+                  <tr key={m.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <span className="truncate block">{m.name}</span>
+                    </td>
 
-          {members.length === 0 && !loading && (
-            <p className="p-6 text-center text-gray-500">Nenhum cadastro encontrado.</p>
-          )}
-        </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatPhone(m.phone)}
+                    </td>
 
-        {/* Paginação */}
-        <div className="mt-4 flex flex-wrap md:items-center md:justify-between gap-3">
-          <div className="text-sm text-gray-600 min-w-0">
-            {count > 0 ? (
-              <>
-                Exibindo <span className="font-semibold">{(page - 1) * limit + 1}</span>–
-                <span className="font-semibold">{Math.min(page * limit, count)}</span> de{' '}
-                <span className="font-semibold">{count}</span>
-              </>
-            ) : (
-              <>Nenhum resultado</>
+                    {/* EMAIL truncável */}
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      <div className="flex items-center min-w-0">
+                        <Mail size={16} className="mr-2 shrink-0" />
+                        <span className="truncate block max-w-[260px]">{m.email}</span>
+                      </div>
+                    </td>
+
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {m.shirt_size}
+                    </td>
+
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                        m.is_legendario ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        <Zap size={14} className="mr-1" />
+                        {m.is_legendario ? 'Legendário' : 'Novo'}
+                      </span>
+                    </td>
+
+                    {/* REFERRAL com quebra se precisar */}
+                    <td className="px-6 py-4 text-sm text-gray-500 whitespace-normal break-words">
+                      <span className="block max-w-[260px]">{m.referral_source || '—'}</span>
+                    </td>
+
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3">
+                      <button
+                        onClick={() => setCurrentMember(m) || setIsModalOpen(true)}
+                        className="text-blue-600 hover:text-blue-900 transition-colors"
+                        title="Editar"
+                      >
+                        <Edit size={16} className="inline mr-1" /> Editar
+                      </button>
+                      <button
+                        onClick={() => handleDelete(m.id)}
+                        className="text-red-600 hover:text-red-800 transition-colors"
+                        title="Excluir"
+                      >
+                        Remover
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {members.length === 0 && !loading && (
+              <p className="p-6 text-center text-gray-500">Nenhum cadastro encontrado.</p>
             )}
           </div>
 
-          <div className="flex items-center gap-1 shrink-0">
-            <button onClick={onFirst} disabled={page === 1} className="p-2 rounded border disabled:opacity-40"><ChevronsLeft size={16} /></button>
-            <button onClick={onPrev}  disabled={page === 1} className="p-2 rounded border disabled:opacity-40"><ChevronLeft size={16} /></button>
-            <span className="px-3 text-sm text-gray-700">Página {page} de {totalPages}</span>
-            <button onClick={onNext} disabled={page >= totalPages} className="p-2 rounded border disabled:opacity-40"><ChevronRight size={16} /></button>
-            <button onClick={onLast} disabled={page >= totalPages} className="p-2 rounded border disabled:opacity-40"><ChevronsRight size={16} /></button>
+          {/* Paginação */}
+          <div className="mt-4 flex flex-wrap md:items-center md:justify-between gap-3">
+            <div className="text-sm text-gray-600 min-w-0">
+              {count > 0 ? (
+                <>
+                  Exibindo <span className="font-semibold">{(page - 1) * limit + 1}</span>–
+                  <span className="font-semibold">{Math.min(page * limit, count)}</span> de{' '}
+                  <span className="font-semibold">{count}</span>
+                </>
+              ) : (
+                <>Nenhum resultado</>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1 shrink-0">
+              <button onClick={onFirst} disabled={page === 1} className="p-2 rounded border disabled:opacity-40"><ChevronsLeft size={16} /></button>
+              <button onClick={onPrev}  disabled={page === 1} className="p-2 rounded border disabled:opacity-40"><ChevronLeft size={16} /></button>
+              <span className="px-3 text-sm text-gray-700">Página {page} de {totalPages}</span>
+              <button onClick={onNext} disabled={page >= totalPages} className="p-2 rounded border disabled:opacity-40"><ChevronRight size={16} /></button>
+              <button onClick={onLast} disabled={page >= totalPages} className="p-2 rounded border disabled:opacity-40"><ChevronsRight size={16} /></button>
+            </div>
           </div>
         </div>
-      </div>
-    </DashboardLayout>
-  </RequireAuth>
-);
+      </DashboardLayout>
+    </RequireAuth>
+  );
+
 }
