@@ -452,99 +452,262 @@ export default function InscricaoPage() {
         </>
     );
 
-    const ModalCartao = () => (
+    const ModalCartao = () => {
+    // Formata o valor final para exibição
+    const valorFormatado = Number(valorFinalCobranca).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+    });
+
+    // Calcula o valor das taxas para exibir
+    const valorTaxas = Number(valorFinalCobranca) - Number(formData.valorInscricao);
+    const taxaFormatada = valorTaxas.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+
+    return (
         <>
-            <h1>Pagamento com Cartão</h1>
+        <h1>Pagamento com Cartão</h1>
 
-            <div className="form-row">
-                <div>
-                    <label htmlFor="holderName">Nome impresso</label>
-                    <input id="holderName" name="holderName" type="text" value={cardForm.holderName} onChange={handleCardChange} required />
-                </div>
-                <div>
-                    <label htmlFor="number">Número do cartão</label>
-                    <input id="number" name="number" type="text" value={cardForm.number} onChange={handleCardChange} required />
-                </div>
+        {/* NOVO: Exibe o valor final com detalhes */}
+        <p
+            style={{
+            margin: '10px 0',
+            fontSize: '16px',
+            border: '1px solid #ddd',
+            padding: '10px',
+            borderRadius: '4px',
+            backgroundColor: '#f9f9f9',
+            }}
+        >
+            <strong className="color-orange" style={{ fontSize: '18px' }}>
+            Valor Final: {valorFormatado}
+            </strong>
+            <br />
+            <small>
+            ({Number(cardForm.installments)}x de{' '}
+            {Number(valorFinalCobranca / cardForm.installments).toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+            })}
+            )
+            </small>
+            <br />
+            <small style={{ color: '#666' }}>
+            (Ingresso: R$ {formData.valorInscricao} + Taxas/Antecipação: {taxaFormatada})
+            </small>
+        </p>
+
+        <div className="form-row">
+            <div>
+            <label htmlFor="holderName">Nome impresso</label>
+            <input
+                id="holderName"
+                name="holderName"
+                type="text"
+                value={cardForm.holderName}
+                onChange={handleCardChange}
+                required
+            />
             </div>
-
-            <div className="form-row">
-                <div>
-                    <label htmlFor="expiryMonth">Mês</label>
-                    <input id="expiryMonth" name="expiryMonth" type="text" placeholder="MM" value={cardForm.expiryMonth} onChange={handleCardChange} required />
-                </div>
-                <div>
-                    <label htmlFor="expiryYear">Ano</label>
-                    <input id="expiryYear" name="expiryYear" type="text" placeholder="YYYY" value={cardForm.expiryYear} onChange={handleCardChange} required />
-                </div>
+            <div>
+            <label htmlFor="number">Número do cartão</label>
+            <input
+                id="number"
+                name="number"
+                type="text"
+                value={cardForm.number}
+                onChange={handleCardChange}
+                required
+            />
             </div>
+        </div>
 
-            <div className="form-row">
-                <div>
-                    <label htmlFor="ccv">CCV</label>
-                    <input id="ccv" name="ccv" type="password" value={cardForm.ccv} onChange={handleCardChange} required />
-                </div>
-                <div>
-                    <label htmlFor="installments">Parcelas</label>
-                    <select id="installments" name="installments" value={cardForm.installments} onChange={handleCardChange}>
-                        <option value={1}>1x</option>
-                        <option value={2}>2x</option>
-                        <option value={3}>3x</option>
-                        <option value={6}>6x</option>
-                        <option value={12}>12x</option>
-                    </select>
-                </div>
+        <div className="form-row">
+            <div>
+            <label htmlFor="expiryMonth">Mês</label>
+            <input
+                id="expiryMonth"
+                name="expiryMonth"
+                type="text"
+                placeholder="MM"
+                value={cardForm.expiryMonth}
+                onChange={handleCardChange}
+                required
+            />
             </div>
-
-            {errorMsg && <p style={{ color: 'red', fontSize: '14px' }}>Erro: {errorMsg}</p>}
-
-            <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
-                <button type="button" className="base-btn" onClick={handlePayWithCard} disabled={isLoading}>
-                    {isLoading ? 'Processando...' : 'Pagar'}
-                </button>
-                <button
-                    type="button"
-                    className="base-btn"
-                    onClick={() => setFlowStatus('payment')}
-                    disabled={isLoading}
-                    style={{ width: '150px', fontSize: '18px', padding: '6px 12px' }}
-                >
-                    Voltar
-                </button>
+            <div>
+            <label htmlFor="expiryYear">Ano</label>
+            <input
+                id="expiryYear"
+                name="expiryYear"
+                type="text"
+                placeholder="YYYY"
+                value={cardForm.expiryYear}
+                onChange={handleCardChange}
+                required
+            />
             </div>
-        </>
-    );
+        </div>
 
-    const ModalPix = () => (
-        <>
-            <h1>Pagamento via PIX</h1>
-            <p style={{ margin: '10px 0', fontSize: '18px' }}>Escaneie o QR Code ou copie o código Pix para finalizar.</p>
-
-            {pixData.qrCodeImage ? (
-                <img src={pixData.qrCodeImage} alt="QR Code Pix" className="pix-qr-code-img" />
-            ) : (
-                <p style={{ fontSize: '14px' }}>Gerando QR Code...</p>
-            )}
-
-            <p style={{ fontWeight: 'bold', marginTop: '10px' }}>Código Copia e Cola:</p>
-            <textarea value={pixData.pixCopiaECola || 'Aguardando código Pix...'} rows="4" readOnly style={{ fontSize: '14px' }} />
-            <button type="button" className="base-btn" onClick={copiarPix} style={{ marginTop: '10px' }}>
-                Copiar Código Pix
-            </button>
-
-            <button
-                type="button"
-                className="base-btn"
-                onClick={() => setFlowStatus('payment')}
-                disabled={isLoading}
-                style={{ width: '150px', fontSize: '18px', padding: '6px 12px', marginTop: '10px' }}
+        <div className="form-row">
+            <div>
+            <label htmlFor="ccv">CCV</label>
+            <input
+                id="ccv"
+                name="ccv"
+                type="password"
+                value={cardForm.ccv}
+                onChange={handleCardChange}
+                required
+            />
+            </div>
+            <div>
+            <label htmlFor="installments">Parcelas</label>
+            <select
+                id="installments"
+                name="installments"
+                value={cardForm.installments}
+                onChange={handleCardChange}
             >
-                Voltar
-            </button>
+                <option value={1}>1x</option>
+                <option value={2}>2x</option>
+                <option value={3}>3x</option>
+                <option value={6}>6x</option>
+                <option value={12}>12x</option>
+            </select>
+            </div>
+        </div>
 
-            <p style={{ marginTop: '20px', fontSize: '16px' }}>Seu acesso será liberado automaticamente após a confirmação do pagamento.</p>
-            {errorMsg && <p style={{ color: 'red', fontSize: '14px', marginTop: '10px' }}>Erro: {errorMsg}</p>}
+        {errorMsg && (
+            <p style={{ color: 'red', fontSize: '14px' }}>Erro: {errorMsg}</p>
+        )}
+
+        <div
+            style={{
+            marginTop: 10,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+            alignItems: 'center',
+            }}
+        >
+            <button
+            type="button"
+            className="base-btn"
+            onClick={handlePayWithCard}
+            disabled={isLoading}
+            >
+            {isLoading ? 'Processando...' : 'Pagar'}
+            </button>
+            <button
+            type="button"
+            className="base-btn"
+            onClick={() => setFlowStatus('payment')}
+            disabled={isLoading}
+            style={{ width: '150px', fontSize: '18px', padding: '6px 12px' }}
+            >
+            Voltar
+            </button>
+        </div>
         </>
     );
+    };
+
+    const ModalPix = () => {
+    // Formata o valor final para exibição
+    const valorFormatado = Number(valorFinalCobranca).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+    });
+
+    // Calcula o valor das taxas para exibir
+    const valorTaxas = Number(valorFinalCobranca) - Number(formData.valorInscricao);
+    const taxaFormatada = valorTaxas.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+
+    const hasPixCode = Boolean(pixData?.pixCopiaECola);
+
+    return (
+        <>
+        <h1>Pagamento via PIX</h1>
+
+        {/* NOVO: Exibe o valor final com detalhes */}
+        <p
+            style={{
+            margin: '10px 0',
+            fontSize: '16px',
+            border: '1px solid #ddd',
+            padding: '10px',
+            borderRadius: '4px',
+            backgroundColor: '#f9f9f9',
+            }}
+        >
+            <strong className="color-orange" style={{ fontSize: '18px' }}>
+            Valor Final: {valorFormatado}
+            </strong>
+            <br />
+            <small style={{ color: '#666' }}>
+            (Ingresso: R$ {formData.valorInscricao} + Taxas/Antecipação: {taxaFormatada})
+            </small>
+        </p>
+
+        <p style={{ margin: '10px 0', fontSize: '18px' }}>
+            Escaneie o QR Code ou copie o código Pix para finalizar.
+        </p>
+
+        {pixData?.qrCodeImage ? (
+            <img src={pixData.qrCodeImage} alt="QR Code Pix" className="pix-qr-code-img" />
+        ) : (
+            <p style={{ fontSize: '14px' }}>Gerando QR Code...</p>
+        )}
+
+        <p style={{ fontWeight: 'bold', marginTop: '10px' }}>Código Copia e Cola:</p>
+        <textarea
+            value={hasPixCode ? pixData.pixCopiaECola : 'Aguardando código Pix...'}
+            rows={4}
+            readOnly
+            style={{ fontSize: '14px' }}
+        />
+
+        <button
+            type="button"
+            className="base-btn"
+            onClick={copiarPix}
+            style={{ marginTop: '10px' }}
+            disabled={!hasPixCode}
+            title={hasPixCode ? 'Copiar código Pix' : 'Aguarde gerar o código'}
+        >
+            Copiar Código Pix
+        </button>
+
+        <button
+            type="button"
+            className="base-btn"
+            onClick={() => setFlowStatus('payment')}
+            disabled={isLoading}
+            style={{ width: '150px', fontSize: '18px', padding: '6px 12px', marginTop: '10px' }}
+        >
+            Voltar
+        </button>
+
+        <p style={{ marginTop: '20px', fontSize: '16px' }}>
+            Seu acesso será liberado automaticamente após a confirmação do pagamento.
+        </p>
+
+        {errorMsg && (
+            <p style={{ color: 'red', fontSize: '14px', marginTop: '10px' }}>Erro: {errorMsg}</p>
+        )}
+        </>
+    );
+    };
 
     const TelaSucesso = () => {
         const handleNewRegistration = () => {
