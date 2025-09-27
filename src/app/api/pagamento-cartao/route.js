@@ -50,6 +50,9 @@ export async function POST(request) {
   if (Number.isNaN(body.valor) || body.valor <= 0) {
     return NextResponse.json({ error: 'Valor inválido.' }, { status: 400 });
   }
+  if (Number.isNaN(body.valorBase) || body.valorBase <= 0) {
+    return NextResponse.json({ error: 'Valor base (para registro) inválido.' }, { status: 400 });
+  }
 
   console.log('[CARTAO][ENV]', {
     ASAAS_BASE_URL,

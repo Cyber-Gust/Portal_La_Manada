@@ -551,7 +551,7 @@ export default function InscricaoPage() {
             setFlowStatus('form');
             setFormData({
             nome: '', sobrenome: '', email: '', cpfCnpj: '', telefone: '',
-            tamanho: 'p', legendario: 'nao', valorInscricao: '150.00',
+            tamanho: 'p', legendario: 'nao', valorInscricao: {valorFinalCobranca},
             });
             setErrorMsg('');
             setPixData({});
@@ -561,6 +561,88 @@ export default function InscricaoPage() {
             currentPaymentIdRef.current = null;
             setTicketInfo(null);
             setQrReady(false);
+        };
+
+        const downloadTicketPDF = () => {
+            if (!qrReady || !ticketInfo?.qr_code_value) return;
+
+            // Gera a URL do QR Code
+            const base64QrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(ticketInfo.qr_code_value)}`;
+            const nomeCompleto = `${formData.nome} ${formData.sobrenome}`;
+            const cpfCnpj = formData.cpfCnpj;
+            const camisa = formData.tamanho.toUpperCase();
+
+            // Conteúdo HTML estilizado para impressão em PDF
+            const printContent = `
+                <html>
+                <head>
+                    <title>Ingresso - Manada Las Campanas</title>
+                    <style>
+                        body { font-family: sans-serif; margin: 0; padding: 0; background-color: #f0f0f0; }
+                        .ticket-container { 
+                            width: 100%; max-width: 600px; margin: 30px auto; padding: 30px; 
+                            background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); 
+                            border: 3px solid #fb3a01; 
+                        }
+                        .header { text-align: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
+                        .header h1 { color: #2c3e50; font-size: 28px; margin: 0; }
+                        .header h1 span { color: #fb3a01; }
+                        .qr-area { text-align: center; margin: 25px 0; }
+                        .qr-area img { border: 5px solid #2c3e50; border-radius: 8px; }
+                        .details { margin-top: 20px; }
+                        .details p { margin: 5px 0; font-size: 16px; color: #34495e; }
+                        .details strong { font-weight: 700; color: #fb3a01; }
+                        .footer { text-align: center; margin-top: 30px; font-size: 14px; color: #7f8c8d; border-top: 1px solid #eee; padding-top: 15px; }
+                        @media print {
+                            body { background-color: white; }
+                            .ticket-container { 
+                                box-shadow: none; 
+                                border: 1px solid #000;
+                                margin: 0; 
+                                max-width: 100%;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="ticket-container">
+                        <div class="header">
+                            <h1>Ingresso <span>Manada</span> Las Campanas</h1>
+                            <p>CONFIRMADO - Acesso Único</p>
+                        </div>
+                        <div class="qr-area">
+                            <h2>Apresente este QR Code na entrada</h2>
+                            <img src="${base64QrUrl}" alt="QR Code do Ingresso" width="250" height="250" />
+                        </div>
+                        <div class="details">
+                            <p><strong>Evento:</strong> Manada Las Campanas</p>
+                            <p><strong>Local:</strong> Le Hall - São João Del Rei, MG</p>
+                            <p><strong>Data:</strong> 11 de Outubro</p>
+                        </div>
+                        <div class="details">
+                            <p><strong>Nome:</strong> ${nomeCompleto}</p>
+                            <p><strong>Documento:</strong> ${cpfCnpj}</p>
+                            <p><strong>Tamanho Camisa:</strong> <strong>${camisa}</strong></p>
+                        </div>
+                        <div class="footer">
+                            <p>ID Ingresso: ${ticketInfo.qr_code_value}</p>
+                            <p>Este documento não é fiscal. Válido apenas para acesso ao evento.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `;
+
+            const printWindow = window.open('', '_blank');
+            if (printWindow) {
+                printWindow.document.write(printContent);
+                printWindow.document.close();
+                // Pequeno delay para garantir que o navegador carregue o QR e o estilo
+                setTimeout(() => {
+                    printWindow.print();
+                    printWindow.close();
+                }, 500);
+            }
         };
 
         const QrPreview = () => {
@@ -606,7 +688,16 @@ export default function InscricaoPage() {
 
             <QrPreview />
 
-            <div style={{ marginTop: 16 }}>
+            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                <button 
+                    type="button" 
+                    className="lgnd-btn base-btn" 
+                    onClick={downloadTicketPDF} 
+                    disabled={!qrReady}
+                    style={{ backgroundColor: qrReady ? '#27ae60' : '#bdc3c7' }} 
+                >
+                    ⬇️ Baixar Ingresso PDF
+                </button>
                 <button type="button" className="base-btn" onClick={handleNewRegistration}>
                 Fazer Nova Inscrição
                 </button>
