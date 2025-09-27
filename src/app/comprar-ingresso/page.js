@@ -477,10 +477,9 @@ export default function InscricaoPage() {
             style={{
             margin: '10px 0',
             fontSize: '16px',
-            border: '1px solid #ddd',
             padding: '10px',
             borderRadius: '4px',
-            backgroundColor: 'none',
+            backgroundColor: 'transparent',
             }}
         >
             <strong className="color-orange" style={{ fontSize: '18px' }}>
@@ -644,10 +643,9 @@ export default function InscricaoPage() {
             style={{
             margin: '10px 0',
             fontSize: '16px',
-            border: '1px solid #ddd',
             padding: '10px',
             borderRadius: '4px',
-            backgroundColor: 'none',
+            backgroundColor: 'transparent',
             }}
         >
             <strong className="color-orange" style={{ fontSize: '18px' }}>
