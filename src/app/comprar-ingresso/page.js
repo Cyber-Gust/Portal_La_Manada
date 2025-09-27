@@ -282,7 +282,7 @@ export default function InscricaoPage() {
                 body: JSON.stringify({
                     customerId: cid,
                     valor: valorFinalCobranca,
-                    valorBase: formData.valorInscricao, 
+                    valorBase: formData.valorInscricao,
                     descricao: `Inscrição - Camisa ${formData.tamanho}`,
                     card: { holderName, number, expiryMonth, expiryYear, ccv },
                     installments: Number(installments) || 1,

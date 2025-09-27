@@ -25,6 +25,7 @@ export async function POST(request) {
   const body = {
     customerId: String(raw?.customerId || '').trim(),
     valor: Number(raw?.valor),
+    valorBase: Number(raw?.valorBase), 
     descricao: raw?.descricao || 'Pagamento Cartão',
     installments: Number(raw?.installments) || 1,
     // 👇👇👇 ÚNICA LINHA NOVA (propaga attendeeId para o body)
