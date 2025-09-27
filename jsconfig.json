@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "allowJs": true,
+    "checkJs": false,
+    "jsx": "react-jsx",
+    "module": "esnext",
+    "moduleResolution": "Bundler",
+    "target": "ES2022"
+  },
+  "include": ["next-env.d.ts", "src/**/*", "**/*.js", "**/*.jsx", "**/*.mjs", "**/*.cjs"],
+  "exclude": ["node_modules"]
+}

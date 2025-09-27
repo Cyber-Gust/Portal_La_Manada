@@ -1,0 +1,242 @@
+/* app/globals.css */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+html {
+    width: 100vw;
+    -webkit-text-size-adjust: 100%;
+    overflow-x: hidden;
+    /* Ajuste para evitar barra de rolagem horizontal */
+}
+
+body {
+    font-family: 'Bebas Neue', sans-serif;
+    color: white;
+    background-image: url('/captura-images/wpp.png');
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-color: #111111;
+    justify-content: center;
+    display: flex;
+    align-items: center;
+}
+
+.color-orange{
+    color: #fb3a01;
+}
+
+.container {
+    width: 100%;
+    height: 100vh;
+    /* Certifique-se de que 'wpp.png' e 'lgnd-ico.png' estão na pasta public/captura-images */
+
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    width: 400px;
+    background-color: #1b1b1bc4;
+    border-radius: 15px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 50px;
+
+    gap: 5px;
+
+    text-align: center;
+}
+
+.modal-content h1 {
+    font-size: 40px;
+}
+
+.modal-content h3 {
+    font-size: 22px;
+    margin-bottom: 4px;
+}
+
+.modal-content h4 {
+    margin-bottom: 0px;
+}
+
+.modal-value {
+    font-size: 20px;
+}
+
+.modal-itn {
+    display: flex;
+    align-items: start;
+    justify-content: center;
+    gap: 5px;
+}
+
+.modal-itn>img {
+    width: 20px;
+}
+
+.modal-content>button {
+    margin: 10px 0;
+}
+
+/* Base button style (for all buttons) */
+.base-btn {
+    position: relative;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 300px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 10px;
+    background: #fb3a01;
+    color: #fff;
+    font-size: 37px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-style: italic;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.4s ease, color 0.4s ease, padding-right 0.4s ease;
+}
+
+.base-btn:hover {
+    background: #000;
+    color: #fb3a01;
+}
+
+/* Specific style for lgnd-btn, adding the icon effect */
+.lgnd-btn {
+    /* Herda de .base-btn ou adicione aqui estilos específicos */
+}
+
+/* ico */
+.lgnd-btn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    width: 45px;
+    height: 45px;
+    transform: translateY(-50%) translateX(120%);
+    opacity: 0;
+    background: url("/captura-images/lgnd-ico.png") no-repeat center/contain;
+    pointer-events: none;
+    transition: transform 0.45s cubic-bezier(.2, .9, .2, 1), opacity 0.35s ease;
+}
+
+.lgnd-btn:hover {
+    padding-right: 60px;
+    /* Ajuste para dar espaço ao ícone */
+}
+
+.lgnd-btn:hover::after {
+    transform: translateY(-50%) translateX(0);
+    opacity: 1;
+}
+
+/* form */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 10px 0;
+    width: 100%;
+    /* Garante que o form ocupe a largura do modal */
+}
+
+.form-row,
+.form-row-itns {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.form-row>div,
+.form-row-itns>div {
+    flex: 1;
+    min-width: 140px;
+}
+
+input,
+select,
+textarea {
+    /* Adicionado textarea para o PIX */
+    background-color: #111111;
+    color: #fff;
+    padding: 10px;
+    border: 1px solid #ffffff1a;
+    border-radius: 8px;
+    width: 100%;
+}
+
+input[type="radio"] {
+    width: auto;
+    margin-right: 5px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: #fb3a01;
+    outline: none;
+}
+
+label {
+    color: #fff;
+    font-size: 14px;
+    display: block;
+    /* Garante que o label ocupe sua própria linha */
+    text-align: left;
+    margin-bottom: 4px;
+}
+
+.pix-qr-code-img {
+    max-width: 200px;
+    height: auto;
+    margin: 10px auto;
+    display: block;
+}
+
+@media (max-width: 768px) {
+
+    input,
+    select,
+    textarea {
+        font-size: 16px;
+    }
+
+
+    .form-row-itns {
+        flex-direction: row !important;
+    }
+
+    .form-row {
+        flex-direction: column;
+    }
+
+    .form-row>div {
+        flex: none;
+        width: 100%;
+    }
+
+    .email-telefone {
+        display: block;
+        width: 100%;
+    }
+
+
+}

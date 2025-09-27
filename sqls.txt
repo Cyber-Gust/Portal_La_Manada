@@ -1,0 +1,387 @@
+-- TABELA 1: USERS (Perfil Customizado do Usuário)
+-- Armazena dados específicos do Legendário e linka com a tabela auth.users.
+CREATE TABLE public.users (
+  id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL PRIMARY KEY,
+  name text,
+  email text UNIQUE,
+  is_legendario boolean DEFAULT FALSE NOT NULL, -- Para o seu relatório de status
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+COMMENT ON TABLE public.users IS 'Custom user profile data linked to Supabase Auth.';
+
+
+-- TABELA 2: TICKETS (Ingressos e Controle de Check-in)
+-- Armazena os dados de cada ingresso, seu status de pagamento e status de check-in.
+CREATE TABLE public.tickets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES public.users(id) ON DELETE CASCADE,
+  event_name text DEFAULT 'La Manada' NOT NULL,
+  qr_code_value text UNIQUE NOT NULL, -- Valor único que será lido no portão
+  price numeric(10, 2) NOT NULL,
+  is_paid boolean DEFAULT FALSE NOT NULL, -- Status do pagamento (Asaas)
+  is_check_in boolean DEFAULT FALSE NOT NULL, -- Status do Check-in
+  check_in_date timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+COMMENT ON TABLE public.tickets IS 'Registration and check-in data for event tickets.';
+
+-- FUNÇÃO: create_public_profile
+-- Cria uma linha na tabela `users` com o UUID e email do auth.user recém-criado.
+CREATE OR REPLACE FUNCTION public.create_public_profile()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.users (id, email)
+  VALUES (new.id, new.email);
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- TRIGGER: on_auth_user_created
+-- Executa a função acima após cada novo registro na tabela auth.users.
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.create_public_profile();
+
+-- IMPORTANTE: Garanta que a sua chave de serviço (Service Role Key)
+-- tenha permissão para executar esta função.
+
+-- Ativa o RLS na tabela de perfis
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+-- 1. Usuários podem VER seus próprios perfis
+CREATE POLICY "Users can view their own profile."
+  ON public.users FOR SELECT
+  USING (auth.uid() = id);
+
+-- 2. Usuários podem ATUALIZAR seus próprios perfis
+CREATE POLICY "Users can update their own profile."
+  ON public.users FOR UPDATE
+  USING (auth.uid() = id);
+
+  -- Ativa o RLS na tabela de ingressos
+ALTER TABLE public.tickets ENABLE ROW LEVEL SECURITY;
+
+-- 1. Usuários podem VER seus próprios ingressos
+CREATE POLICY "Users can view their own tickets."
+  ON public.tickets FOR SELECT
+  -- Verifica se o user_id do ticket corresponde ao usuário logado
+  USING (auth.uid() = user_id);
+
+-- 2. POLÍTICA ADMINISTRATIVA (Check-in):
+-- Permite que a API/função de check-in (que usa a service role key)
+-- atualize o status do check-in, mas não diretamente pelo cliente.
+-- Se você usar API Routes protegidas no Next.js com a chave de serviço,
+-- não precisa de uma política FOR UPDATE baseada em auth.uid().
+
+-- VIEW: Relatório Rápido de Inscrições
+CREATE OR REPLACE VIEW public.relatorio_manada AS
+SELECT
+  COUNT(t.id) AS total_inscritos,
+  SUM(CASE WHEN t.is_paid = TRUE THEN 1 ELSE 0 END) AS total_pagos,
+  SUM(CASE WHEN t.is_check_in = TRUE THEN 1 ELSE 0 END) AS total_check_in,
+  SUM(CASE WHEN u.is_legendario = TRUE AND t.is_paid = TRUE THEN 1 ELSE 0 END) AS legendarios_pagos,
+  SUM(CASE WHEN u.is_legendario = FALSE AND t.is_paid = TRUE THEN 1 ELSE 0 END) AS nao_legendarios_pagos
+FROM
+  public.tickets t
+LEFT JOIN
+  public.users u ON t.user_id = u.id
+WHERE
+  t.event_name = 'La Manada'; -- Filtro caso você tenha outros eventos no futuro
+
+  -- (Opcional) Enum p/ tamanhos de camisa. Se preferir texto livre, remova o TYPE e troque a coluna para TEXT.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'shirt_size') THEN
+    CREATE TYPE shirt_size AS ENUM ('PP','P','M','G','GG','XG');
+  END IF;
+END$$;
+
+-- Tabela de cadastrados (separada de public.users/auth.users)
+CREATE TABLE IF NOT EXISTS public.attendees (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  phone text NOT NULL,
+  email text NOT NULL,
+  shirt_size shirt_size NOT NULL,  -- troque para TEXT se não quiser ENUM
+  is_legendario boolean NOT NULL DEFAULT false,
+  referral_source text,            -- "Amigo", "Rede Social", "Ouviu falar", "Outro" etc.
+  notes text,
+
+  -- Quem cadastrou (opcional, útil pra auditoria)
+  created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Unicidade por e-mail (case-insensitive). Remove/ajuste se houver cenário de múltiplos eventos para o mesmo email.
+CREATE UNIQUE INDEX IF NOT EXISTS attendees_email_unique_ci ON public.attendees (lower(email));
+
+-- Trigger pra atualizar updated_at
+CREATE OR REPLACE FUNCTION public.set_updated_at()
+RETURNS trigger AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_attendees_updated_at ON public.attendees;
+CREATE TRIGGER trg_attendees_updated_at
+BEFORE UPDATE ON public.attendees
+FOR EACH ROW
+EXECUTE FUNCTION public.set_updated_at();
+
+-- RLS (boa prática). Service role sempre bypassa, então suas rotas server-side continuam funcionando.
+ALTER TABLE public.attendees ENABLE ROW LEVEL SECURITY;
+
+-- Política opcional: apenas admins autenticados podem ler/escrever via client.
+-- Se você já tem um "is_admin" em public.users, ative estas:
+-- (Se não tiver, pode pular; suas rotas com service role já resolvem.)
+-- CREATE POLICY "attendees_select_admins"
+-- ON public.attendees
+-- FOR SELECT
+-- TO authenticated
+-- USING (EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.is_admin = true));
+--
+-- CREATE POLICY "attendees_write_admins"
+-- ON public.attendees
+-- FOR INSERT, UPDATE, DELETE
+-- TO authenticated
+-- USING (EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.is_admin = true))
+-- WITH CHECK (EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.is_admin = true));
+
+-- 2.1) EVENTS (multi-evento, opcional mas recomendado)
+CREATE TABLE IF NOT EXISTS public.events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  starts_at timestamptz,
+  ends_at timestamptz,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Registra seu evento atual (ajuste datas se quiser)
+INSERT INTO public.events (name, is_active)
+SELECT 'La Manada', true
+WHERE NOT EXISTS (SELECT 1 FROM public.events WHERE name = 'La Manada');
+
+-- 2.2) Tipos para status e camisa (você já tem shirt_size)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ticket_status') THEN
+    CREATE TYPE ticket_status AS ENUM ('pending','paid','cancelled','refunded');
+  END IF;
+END$$;
+
+-- 2.3) TICKETS: adicionar colunas novas SEM quebrar o que existe
+ALTER TABLE public.tickets
+  ADD COLUMN IF NOT EXISTS event_id uuid REFERENCES public.events(id) ON DELETE CASCADE,
+  ADD COLUMN IF NOT EXISTS attendee_id uuid REFERENCES public.attendees(id) ON DELETE CASCADE,
+  ADD COLUMN IF NOT EXISTS status ticket_status DEFAULT 'pending' NOT NULL,
+  ADD COLUMN IF NOT EXISTS currency text DEFAULT 'BRL' NOT NULL,
+  ADD COLUMN IF NOT EXISTS payment_provider text,
+  ADD COLUMN IF NOT EXISTS payment_id text,
+  ADD COLUMN IF NOT EXISTS payment_status text,
+  ADD COLUMN IF NOT EXISTS payment_payload jsonb,
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
+
+-- 2.3.1) qr_code_value NÃO deve ser NOT NULL (só após pagar)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='tickets'
+      AND column_name='qr_code_value'
+  ) THEN
+    -- remove NOT NULL se existir
+    BEGIN
+      ALTER TABLE public.tickets ALTER COLUMN qr_code_value DROP NOT NULL;
+    EXCEPTION WHEN others THEN
+      -- ignora se já não era NOT NULL
+      NULL;
+    END;
+  END IF;
+END$$;
+
+-- 2.3.2) Migração leve de dados antigos (opcional)
+-- Amarra todos os tickets antigos ao primeiro evento "La Manada"
+UPDATE public.tickets t
+SET event_id = (SELECT id FROM public.events WHERE name='La Manada' LIMIT 1)
+WHERE event_id IS NULL;
+
+-- Mantém compat: traduz is_paid->status
+UPDATE public.tickets SET status = 'paid' WHERE is_paid = true;
+UPDATE public.tickets SET status = 'pending' WHERE is_paid = false;
+
+-- 2.3.3) Regra de unicidade: 1 ticket ativo por attendee+evento
+-- Primeiro remova índice velho de qr_code se quiser manter (vamos manter o unique dele)
+-- Cria índice parcial de unicidade
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_attendee_event_active_ticket
+ON public.tickets (event_id, attendee_id)
+WHERE status IN ('pending','paid');
+
+-- 2.3.4) Trigger updated_at
+CREATE OR REPLACE FUNCTION public.tickets_set_updated_at()
+RETURNS trigger AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END; $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_tickets_updated_at ON public.tickets;
+CREATE TRIGGER trg_tickets_updated_at
+BEFORE UPDATE ON public.tickets
+FOR EACH ROW EXECUTE FUNCTION public.tickets_set_updated_at();
+
+-- 2.3.5) Se quiser, remova colunas antigas (faça depois que o app não usar mais):
+-- ALTER TABLE public.tickets DROP COLUMN user_id;
+-- ALTER TABLE public.tickets DROP COLUMN is_paid;
+
+-- 2.4) CHECK-IN: histórico de entradas/saídas (log)
+CREATE TABLE IF NOT EXISTS public.checkin_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id uuid NOT NULL REFERENCES public.tickets(id) ON DELETE CASCADE,
+  direction text NOT NULL CHECK (direction IN ('in','out')),
+  at timestamptz NOT NULL DEFAULT now(),
+  created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_checkin_events_ticket ON public.checkin_events(ticket_id);
+CREATE INDEX IF NOT EXISTS idx_checkin_events_at ON public.checkin_events(at);
+
+-- 2.4.1) VIEW: presença atual (quem está "dentro")
+CREATE OR REPLACE VIEW public.current_presence AS
+WITH ordered AS (
+  SELECT
+    ce.ticket_id,
+    ce.direction,
+    ce.at,
+    ROW_NUMBER() OVER (PARTITION BY ce.ticket_id ORDER BY ce.at DESC) AS rn
+  FROM public.checkin_events ce
+)
+SELECT
+  t.id AS ticket_id,
+  t.attendee_id,
+  t.event_id,
+  t.status,
+  t.qr_code_value,
+  t.updated_at AS last_ticket_update,
+  o.at AS last_event_at
+FROM ordered o
+JOIN public.tickets t ON t.id = o.ticket_id
+WHERE o.rn = 1 AND o.direction = 'in';
+
+-- 2.5) VIEWS de relatório (por evento)
+-- 2.5.1) Sumário geral
+CREATE OR REPLACE VIEW public.dashboard_summary AS
+SELECT
+  e.id   AS event_id,
+  e.name AS event_name,
+
+  COUNT(t.id) FILTER (WHERE t.status IN ('pending','paid'))     AS total_tickets_ativos,
+  COUNT(t.id) FILTER (WHERE t.status = 'paid')                   AS total_pagos,
+  COUNT(t.id) FILTER (WHERE t.status = 'pending')                AS total_pendentes,
+  COUNT(t.id) FILTER (WHERE t.status = 'cancelled')              AS total_cancelados,
+  COUNT(t.id) FILTER (WHERE t.status = 'refunded')               AS total_reembolsados,  -- << removi o parêntese extra aqui
+
+  COUNT(DISTINCT cp.ticket_id)                                   AS total_em_checkin,    -- evita duplicatas por JOIN
+  COALESCE(SUM(t.price) FILTER (WHERE t.status = 'paid'), 0)     AS receita_confirmada
+
+FROM public.events e
+LEFT JOIN public.tickets t
+  ON t.event_id = e.id
+LEFT JOIN public.current_presence cp
+  ON cp.ticket_id = t.id
+GROUP BY e.id, e.name;
+
+-- 2.5.2) Quebra por "legendário"
+CREATE OR REPLACE VIEW public.legendario_breakdown AS
+SELECT
+  e.id AS event_id,
+  e.name AS event_name,
+  SUM(CASE WHEN a.is_legendario THEN 1 ELSE 0 END) FILTER (WHERE t.status='paid') AS legendarios_pagos,
+  SUM(CASE WHEN NOT a.is_legendario THEN 1 ELSE 0 END) FILTER (WHERE t.status='paid') AS nao_legendarios_pagos,
+  SUM(CASE WHEN a.is_legendario THEN 1 ELSE 0 END) FILTER (WHERE t.status IN ('pending','paid')) AS legendarios_ativos,
+  SUM(CASE WHEN NOT a.is_legendario THEN 1 ELSE 0 END) FILTER (WHERE t.status IN ('pending','paid')) AS nao_legendarios_ativos
+FROM public.events e
+LEFT JOIN public.tickets t ON t.event_id = e.id
+LEFT JOIN public.attendees a ON a.id = t.attendee_id
+GROUP BY e.id, e.name;
+
+-- 2.5.3) Vendas por dia (considera created_at do ticket; ajuste se quiser "paid_at")
+CREATE OR REPLACE VIEW public.sales_by_day AS
+SELECT
+  t.event_id,
+  DATE_TRUNC('day', t.created_at) AS dia,
+  COUNT(*) FILTER (WHERE t.status='paid') AS pagos,
+  COUNT(*) FILTER (WHERE t.status='pending') AS pendentes,
+  SUM(t.price) FILTER (WHERE t.status='paid') AS receita_dia
+FROM public.tickets t
+GROUP BY t.event_id, DATE_TRUNC('day', t.created_at)
+ORDER BY dia;
+
+-- 2.6) RLS (mantém ligado; suas rotas server-side com service role bypassam)
+ALTER TABLE public.tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.checkin_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
+
+-- Políticas mínimas (opcional, se for abrir algo via client autenticado):
+-- Ex.: somente admins podem ver/escrever
+-- (Requer coluna is_admin em public.users)
+-- CREATE POLICY "tickets_admin_select" ON public.tickets FOR SELECT TO authenticated
+-- USING (EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.is_admin = true));
+-- CREATE POLICY "tickets_admin_write" ON public.tickets FOR INSERT, UPDATE, DELETE TO authenticated
+-- USING (EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.is_admin = true))
+-- WITH CHECK (EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.is_admin = true));
+
+-- View que entrega uma linha por ticket pago, com status de presença atual (is_inside)
+CREATE OR REPLACE VIEW public.checkin_grid AS
+WITH last_move AS (
+  SELECT
+    ce.ticket_id,
+    ce.direction,
+    ce.at,
+    ROW_NUMBER() OVER (PARTITION BY ce.ticket_id ORDER BY ce.at DESC) rn
+  FROM public.checkin_events ce
+)
+SELECT
+  t.id                           AS ticket_id,
+  t.event_id,
+  t.qr_code_value,
+  t.status,
+  (lm.direction = 'in')          AS is_inside,
+  t.updated_at                   AS last_update,
+
+  a.id                           AS attendee_id,
+  a.name                         AS attendee_name,
+  a.email                        AS attendee_email,
+  a.is_legendario                AS is_legendario
+FROM public.tickets t
+JOIN public.attendees a ON a.id = t.attendee_id
+LEFT JOIN last_move lm ON lm.ticket_id = t.id AND lm.rn = 1
+WHERE t.status = 'paid';
+
+INSERT INTO public.tickets (attendee_id, event_id, status, price, currency)
+SELECT
+  a.id,
+  e.id,
+  'pending'::ticket_status,
+  0,
+  'BRL'
+FROM public.attendees a
+CROSS JOIN LATERAL (
+  SELECT id FROM public.events
+  WHERE is_active = true
+  ORDER BY created_at DESC
+  LIMIT 1
+) e
+LEFT JOIN public.tickets t
+  ON t.attendee_id = a.id
+ AND t.event_id = e.id
+ AND t.status IN ('pending','paid')
+WHERE t.id IS NULL;
+
