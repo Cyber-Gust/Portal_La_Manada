@@ -4,7 +4,66 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 
-const NEXT_PUBLIC_APP_BASE_URL = process.env.NEXT_PUBLIC_APP_BASE_URL || 'http://localhost:3000';
+// === FUNÇÃO DE CÁLCULO DE TAXAS (NOVO) ===
+/**
+ * Calcula o valor total com as taxas repassadas para o cliente.
+ * @param {number} valorBase - O valor original da inscrição (ex: 150.00).
+ * @param {'pix' | 'debito' | 'credito'} metodo - O método de pagamento.
+ * @param {number} [parcelas=1] - O número de parcelas (para crédito).
+ * @returns {number} O valor final com as taxas inclusas.
+ */
+const calcularValorComTaxas = (valorBase, metodo, parcelas = 1) => {
+    // As taxas no Asaas são aplicadas sobre o valor *cheio*.
+    let taxaFixa = 0;
+    let taxaPercentual = 0;
+    let taxaAntecipacao = 0; // Por parcela (mês)
+
+    // Converte valorBase para um número seguro
+    const base = Number(valorBase);
+    if (isNaN(base) || base <= 0) return base;
+
+    if (metodo === 'pix') {
+        taxaFixa = 1.99;
+    } else if (metodo === 'debito') {
+        taxaFixa = 0.35;
+        taxaPercentual = 0.0189; // 1.89%
+    } else if (metodo === 'credito') {
+        if (parcelas === 1) {
+            // Crédito à vista
+            taxaFixa = 0.49;
+            taxaPercentual = 0.0299; // 2.99%
+            taxaAntecipacao = 0.0125 * 1; // 1.25% x 1 mês
+        } else if (parcelas >= 2 && parcelas <= 6) {
+            // Crédito 2x a 6x
+            taxaFixa = 0.49;
+            taxaPercentual = 0.0349; // 3.49%
+            // Antecipação: 1.25% por parcela (mês)
+            taxaAntecipacao = 0.0125 * parcelas;
+        } else if (parcelas >= 7 && parcelas <= 12) {
+            // Crédito 7x a 12x
+            taxaFixa = 0.49;
+            taxaPercentual = 0.0399; // 3.99%
+            // Antecipação: 1.25% por parcela (mês)
+            taxaAntecipacao = 0.0125 * parcelas;
+        }
+    } else {
+        return base; // Método desconhecido, retorna o valor base
+    }
+
+    // Calcula a taxa total em percentual
+    const taxaTotalPercentual = taxaPercentual + taxaAntecipacao;
+
+    /* * O cálculo de repasse é:
+    * ValorFinal = (ValorBase + TaxaFixa) / (1 - TaxaTotalPercentual)
+    * Isso garante que a taxa percentual (e antecipação) aplicada sobre o ValorFinal resulte no ValorBase.
+    */
+    const valorComRepassePercentual = (base + taxaFixa) / (1 - taxaTotalPercentual);
+    
+    // Arredonda para duas casas decimais
+    return Number(valorComRepassePercentual.toFixed(2));
+};
+
+const NEXT_PUBLIC_APP_BASE_URL = process.env.NEXT_PUBLIC_APP_BASE_URL || 'http://lgnd-la-manada.vercel.app';
 
 export default function InscricaoPage() {
     // form | payment | card | pix | success
@@ -22,6 +81,10 @@ export default function InscricaoPage() {
     const [qrReady, setQrReady] = useState(false);
     const ticketPollRef = useRef(null);
 
+    const VALOR_BASE_INSCRICAO = '1.00'; 
+    // NOVO ESTADO: Valor final que será cobrado, inicializado com o valor base.
+    const [valorFinalCobranca, setValorFinalCobranca] = useState(VALOR_BASE_INSCRICAO);
+
     const [formData, setFormData] = useState({
         nome: '',
         sobrenome: '',
@@ -30,8 +93,8 @@ export default function InscricaoPage() {
         telefone: '',
         tamanho: 'p',
         legendario: 'nao',
-        valorInscricao: '150.00',
-    });
+        valorInscricao: VALOR_BASE_INSCRICAO,
+     });
 
     const [cardForm, setCardForm] = useState({
         holderName: '',
@@ -50,7 +113,21 @@ export default function InscricaoPage() {
         // garante que number/ccv chegam como dígitos reais ao back
         let v = value;
         if (name === 'number' || name === 'ccv') v = v.replace(/\D/g, '');
-        setCardForm((old) => ({ ...old, [name]: v }));
+        setCardForm((old) => {
+            const newCardForm = { ...old, [name]: v };
+            
+            // Se as parcelas mudarem, recalcula o valor final
+            if (name === 'installments') {
+                const novoValor = calcularValorComTaxas(
+                    formData.valorInscricao, // Valor Base (150.00)
+                    'credito',
+                    Number(v) // Nova quantidade de parcelas
+                );
+                setValorFinalCobranca(String(novoValor));
+            }
+            
+            return newCardForm;
+        });
     };
 
     const clearPolling = () => {
@@ -160,7 +237,8 @@ export default function InscricaoPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     customerId: cid,
-                    valor: formData.valorInscricao,
+                    valor: valorFinalCobranca,
+                    valorBase: formData.valorInscricao, 
                     descricao: `Inscrição - Camisa ${formData.tamanho}`,
                     attendeeId: sessionStorage.getItem('attendeeId') || null,
                 }),
@@ -205,7 +283,8 @@ export default function InscricaoPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     customerId: cid,
-                    valor: formData.valorInscricao,
+                    valor: valorFinalCobranca,
+                    valorBase: formData.valorInscricao, 
                     descricao: `Inscrição - Camisa ${formData.tamanho}`,
                     card: { holderName, number, expiryMonth, expiryYear, ccv },
                     installments: Number(installments) || 1,
@@ -239,6 +318,27 @@ export default function InscricaoPage() {
         clearTicketPolling(); // ADD
         };
     }, [asaasCustomerId]);
+
+    useEffect(() => {
+        // Redefine o valor para o base (150.00) ao voltar para 'form' ou 'payment'
+        if (flowStatus === 'form' || flowStatus === 'payment') {
+            setValorFinalCobranca(VALOR_BASE_INSCRICAO);
+            setCardForm(old => ({ ...old, installments: 1 })); // Reseta parcelas
+        }
+
+        // Calcula a taxa PIX ao selecionar PIX
+        if (flowStatus === 'pix') {
+            const novoValor = calcularValorComTaxas(VALOR_BASE_INSCRICAO, 'pix');
+            setValorFinalCobranca(String(novoValor));
+        }
+
+        // Calcula a taxa de crédito a vista (padrão) ao selecionar Cartão (card)
+        if (flowStatus === 'card') {
+            const novoValor = calcularValorComTaxas(VALOR_BASE_INSCRICAO, 'credito', cardForm.installments);
+            setValorFinalCobranca(String(novoValor));
+        }
+
+    }, [flowStatus, VALOR_BASE_INSCRICAO, cardForm.installments]); // Adicione VALOR_BASE_INSCRICAO se você o definir fora do estado.
 
     const copiarPix = () => {
         if (pixData.pixCopiaECola) {
@@ -327,7 +427,7 @@ export default function InscricaoPage() {
             <h1><span className='color-orange'>Manada</span> Las Campanas</h1>
             <h2>Escolha o Pagamento</h2>
             <p style={{ margin: '10px 0', fontSize: '18px' }}>
-                Sua inscrição está quase pronta. <br /> Valor: <strong className='color-orange'>R$ {formData.valorInscricao}</strong>.
+                Sua inscrição está quase pronta. <br /> Valor: <strong className='color-orange'>R$ {valorFinalCobranca}</strong>. {/* <--- ALTERADO AQUI */}
             </p>
             <p style={{ marginBottom: '15px', fontSize: '16px' }}>Como você prefere pagar?</p>
 

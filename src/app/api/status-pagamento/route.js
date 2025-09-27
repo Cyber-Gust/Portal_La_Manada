@@ -2,8 +2,8 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 
-const ASAAS_BASE_URL = process.env.ASAAS_BASE_URL || 'https://api-sandbox.asaas.com/v3';
-const ASAAS_API_KEY  = process.env.ASAAS_API_KEY || "$aact_hmlg_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OjljOWIzZDA4LTk0NzMtNDBkZS1hMDNiLWY1Y2VkZjM4OTNlNjo6JGFhY2hfYWU5ZjZhYjctNGYyOC00YzRmLWE0NzEtMjRkMGViZjA5YTI0";
+const ASAAS_BASE_URL = process.env.ASAAS_BASE_URL || 'https://api.asaas.com/v3';
+const ASAAS_API_KEY  = process.env.ASAAS_API_KEY || "$aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OjI1NzZjYzYzLTk2MTQtNDQ5My1hODhmLWNhODU2NGNhZGI0OTo6JGFhY2hfMTExYjBjZTItYTNlZC00OGEwLTgzODktOWY5OGI4NDgxNTU5";
 
 const asaasApi = axios.create({
   baseURL: ASAAS_BASE_URL,
