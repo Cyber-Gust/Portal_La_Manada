@@ -74,6 +74,16 @@ export default function InscricaoPage() {
     // NOVO ESTADO: Valor final que será cobrado, inicializado com o valor base.
     const [valorFinalCobranca, setValorFinalCobranca] = useState(VALOR_BASE_INSCRICAO);
 
+    // adicione perto dos demais states
+    const [holderExtra, setHolderExtra] = useState({
+    postalCode: '',
+    addressNumber: '',
+    });
+    const handleHolderExtraChange = (e) => {
+    const { name, value } = e.target;
+    setHolderExtra(prev => ({ ...prev, [name]: value }));
+    };
+    
     const [formData, setFormData] = useState({
         nome: '',
         sobrenome: '',
@@ -287,6 +297,11 @@ export default function InscricaoPage() {
                     card: { holderName, number, expiryMonth, expiryYear, ccv },
                     installments: Number(installments) || 1,
                     attendeeId: sessionStorage.getItem('attendeeId') || null,
+                    // 👇 extra transitório, sem persistência
+                    holder: {
+                        postalCode: holderExtra.postalCode,       // CEP
+                        addressNumber: holderExtra.addressNumber, // Nº
+                    }
                 }),
             });
             const data = await res.json();
@@ -579,6 +594,32 @@ export default function InscricaoPage() {
                 <option value={12}>12x</option>
             </select>
             </div>
+        </div>
+
+        <div className="form-row">
+        <div>
+            <label htmlFor="postalCode">CEP (opcional, ajuda aprovar)</label>
+            <input
+            id="postalCode"
+            name="postalCode"
+            type="text"
+            placeholder="Somente números"
+            value={holderExtra.postalCode}
+            onChange={handleHolderExtraChange}
+            inputMode="numeric"
+            pattern="[0-9]*"
+            />
+        </div>
+        <div>
+            <label htmlFor="addressNumber">Nº Endereço (opcional)</label>
+            <input
+            id="addressNumber"
+            name="addressNumber"
+            type="text"
+            value={holderExtra.addressNumber}
+            onChange={handleHolderExtraChange}
+            />
+        </div>
         </div>
 
         {errorMsg && (

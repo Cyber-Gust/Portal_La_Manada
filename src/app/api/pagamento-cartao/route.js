@@ -16,6 +16,9 @@ const asaas = axios.create({
 });
 
 const onlyDigits = (s='') => String(s).replace(/\D/g, '');
+const nonEmpty = (v) => v !== undefined && v !== null && String(v).trim() !== '';
+const pickNonEmpty = (obj = {}) =>
+  Object.fromEntries(Object.entries(obj).filter(([,v]) => nonEmpty(v)));
 const today = () => new Date().toISOString().slice(0, 10);
 const isSandbox = () => (ASAAS_BASE_URL || '').includes('api-sandbox');
 
@@ -37,6 +40,13 @@ export async function POST(request) {
       expiryYear: String(raw?.card?.expiryYear || '').trim(),
       ccv: onlyDigits(String(raw?.card?.ccv || '')),
     },
+  };
+
+  const holderOverrideRaw = raw?.holder || {};
+  const holderOverride = {
+    postalCode: onlyDigits(String(holderOverrideRaw.postalCode || '')),
+    addressNumber: String(holderOverrideRaw.addressNumber || '').trim(),
+    phone: onlyDigits(String(holderOverrideRaw.phone || '')),
   };
 
   console.log('[CARTAO][REQ]', JSON.stringify({
@@ -82,6 +92,13 @@ export async function POST(request) {
     postalCode: customer.postalCode,
     addressNumber: customer.addressNumber,
     phone: customer.mobilePhone || customer.phone,
+  };
+
+  holderInfo = {
+    ...holderInfo,
+    ...Object.fromEntries(
+      Object.entries(holderOverride).filter(([_, v]) => v && String(v).trim() !== '')
+    ),
   };
 
   if (isSandbox()) {
