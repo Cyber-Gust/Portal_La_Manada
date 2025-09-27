@@ -4,21 +4,19 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 
-// === FUNÇÃO DE CÁLCULO DE TAXAS (NOVO) ===
+// === FUNÇÃO DE CÁLCULO DE TAXAS ===
 /**
  * Calcula o valor total com as taxas repassadas para o cliente.
- * @param {number} valorBase - O valor original da inscrição (ex: 150.00).
+ * @param {string} valorBase - O valor original da inscrição (ex: '150.00').
  * @param {'pix' | 'debito' | 'credito'} metodo - O método de pagamento.
  * @param {number} [parcelas=1] - O número de parcelas (para crédito).
  * @returns {number} O valor final com as taxas inclusas.
  */
 const calcularValorComTaxas = (valorBase, metodo, parcelas = 1) => {
-    // As taxas no Asaas são aplicadas sobre o valor *cheio*.
     let taxaFixa = 0;
     let taxaPercentual = 0;
-    let taxaAntecipacao = 0; // Por parcela (mês)
+    let taxaAntecipacao = 0;
 
-    // Converte valorBase para um número seguro
     const base = Number(valorBase);
     if (isNaN(base) || base <= 0) return base;
 
@@ -29,34 +27,25 @@ const calcularValorComTaxas = (valorBase, metodo, parcelas = 1) => {
         taxaPercentual = 0.0189; // 1.89%
     } else if (metodo === 'credito') {
         if (parcelas === 1) {
-            // Crédito à vista
             taxaFixa = 0.49;
             taxaPercentual = 0.0299; // 2.99%
             taxaAntecipacao = 0.0125 * 1; // 1.25% x 1 mês
         } else if (parcelas >= 2 && parcelas <= 6) {
-            // Crédito 2x a 6x
             taxaFixa = 0.49;
             taxaPercentual = 0.0349; // 3.49%
-            // Antecipação: 1.25% por parcela (mês)
             taxaAntecipacao = 0.0125 * parcelas;
         } else if (parcelas >= 7 && parcelas <= 12) {
-            // Crédito 7x a 12x
             taxaFixa = 0.49;
             taxaPercentual = 0.0399; // 3.99%
-            // Antecipação: 1.25% por parcela (mês)
             taxaAntecipacao = 0.0125 * parcelas;
         }
     } else {
-        return base; // Método desconhecido, retorna o valor base
+        return base;
     }
 
-    // Calcula a taxa total em percentual
     const taxaTotalPercentual = taxaPercentual + taxaAntecipacao;
 
-    /* * O cálculo de repasse é:
-    * ValorFinal = (ValorBase + TaxaFixa) / (1 - TaxaTotalPercentual)
-    * Isso garante que a taxa percentual (e antecipação) aplicada sobre o ValorFinal resulte no ValorBase.
-    */
+    /* Fórmula de Repasse: ValorFinal = (ValorBase + TaxaFixa) / (1 - TaxaTotalPercentual) */
     const valorComRepassePercentual = (base + taxaFixa) / (1 - taxaTotalPercentual);
     
     // Arredonda para duas casas decimais
@@ -232,12 +221,21 @@ export default function InscricaoPage() {
             const cid = asaasCustomerId || sessionStorage.getItem('asaasCustomerId');
             if (!cid) throw new Error('Cliente inválido ou não informado.');
 
+            // NOVO: Calcula o valor PIX com taxas imediatamente antes da chamada API
+            const pixValorComTaxas = calcularValorComTaxas(
+                formData.valorInscricao, 
+                'pix'
+            );
+            // Atualiza o estado para refletir na UI (ModalPix)
+            setValorFinalCobranca(String(pixValorComTaxas)); 
+
             const response = await fetch(`/api/pagamento-pix`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     customerId: cid,
-                    valor: valorFinalCobranca,
+                    // Usa o valor recém-calculado com taxas
+                    valor: pixValorComTaxas, 
                     valorBase: formData.valorInscricao, 
                     descricao: `Inscrição - Camisa ${formData.tamanho}`,
                     attendeeId: sessionStorage.getItem('attendeeId') || null,
@@ -301,7 +299,7 @@ export default function InscricaoPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [flowStatus, asaasCustomerId, formData, cardForm, startPollingPayment]);
+    }, [flowStatus, asaasCustomerId, formData, cardForm, startPollingPayment, valorFinalCobranca]);
 
     useEffect(() => {
         const saved = sessionStorage.getItem('asaasCustomerId');

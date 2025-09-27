@@ -1,4 +1,3 @@
-// app/api/pagamento-pix/route.js
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import { getActiveEventId, createPendingTicket } from '../../../lib/commerce';
@@ -11,21 +10,30 @@ const asaasApi = axios.create({
   headers: { 'Content-Type': 'application/json', access_token: ASAAS_API_KEY },
 });
 
+// Funções para controle de data (Adicionadas para robustez do PIX)
+const today = () => new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+const thirtyMinutesFromNow = () => new Date(Date.now() + 30 * 60000).toISOString(); // Data/Hora ISO para expiração
+
 export async function POST(request) {
   try {
-    // 👇 Lê o body UMA vez e já pega attendeeId junto
     const raw = await request.json();
-    const { customerId, valor, descricao, attendeeId } = raw || {};
+    // CORREÇÃO 1: Inclui valorBase na desestruturação da requisição
+    const { customerId, valor, descricao, attendeeId, valorBase } = raw || {};
+    
+    // Validação do valor base
+    if (Number.isNaN(Number(valorBase)) || Number(valorBase) <= 0) {
+        return NextResponse.json({ error: 'Valor base (contábil) inválido.' }, { status: 400 });
+    }
+    
     if (!customerId) return NextResponse.json({ error: 'customerId ausente.' }, { status: 400 });
-
-    const today = new Date().toISOString().slice(0, 10);
 
     const pay = await asaasApi.post('/payments', {
       customer: customerId,
       billingType: 'PIX',
-      value: Number(valor),
+      value: Number(valor), // Valor com taxas (para Asaas)
       description: descricao || 'Pagamento PIX',
-      dueDate: today,
+      dueDate: today(),
+      pixExpirationDate: thirtyMinutesFromNow(), // Define a expiração do PIX (melhor prática)
     });
 
     const paymentId = pay?.data?.id;
@@ -37,25 +45,30 @@ export async function POST(request) {
         await createPendingTicket({
           event_id,
           attendee_id: attendeeId,
-          price: Number(body.valorBase),
+          // CORREÇÃO 2: Usa a variável 'valorBase' que foi desestruturada do 'raw'
+          price: Number(valorBase), 
           payment_provider: 'asaas',
           payment_id: paymentId,
           currency: 'BRL',
         });
       }
     } catch (e) {
+      // O erro 'body is not defined' foi corrigido.
       console.warn('[PIX][createPendingTicket][warn]', e?.message || e);
     }
 
     if (!paymentId) return NextResponse.json({ error: 'Falha ao criar pagamento PIX.' }, { status: 502 });
 
-    // pequena espera ajuda no sandbox
+    // pequena espera ajuda no sandbox/produção
     await new Promise(r => setTimeout(r, 400));
 
     const qr = await asaasApi.get(`/payments/${paymentId}/pixQrCode`);
     const encoded = qr?.data?.encodedImage || null;
-    const qrCodeImage = encoded ? `data:image/png;base64,${encoded}` : null;
     const pixCopiaECola = qr?.data?.payload || null;
+    
+    // A imagem QR no formato data URI para ser exibida no frontend
+    const qrCodeImage = encoded ? `data:image/png;base64,${encoded}` : null;
+    
 
     return NextResponse.json({ paymentId, qrCodeImage, pixCopiaECola });
   } catch (err) {
