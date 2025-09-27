@@ -113,52 +113,68 @@ export default function DashboardPage() {
 
   return (
     <RequireAuth fallback={<div className="p-6">Verificando acesso…</div>}>
-    <DashboardLayout>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-extrabold text-gray-800">Visão Geral da Manada</h1>
-        <div className="text-sm text-gray-500">Logado como <span className="font-semibold">{userEmail}</span></div>
-      </div>
-
-      {err && (
-        <div className="mb-6 rounded-md border border-red-200 bg-red-50 text-red-700 px-4 py-3">
-          {err}
-        </div>
-      )}
-
-      {/* GRID DE CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {loading
-          ? Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="p-6 bg-white rounded-lg shadow-lg border-t-4 border-gray-200 animate-pulse">
-                <div className="h-4 w-24 bg-gray-200 rounded mb-4" />
-                <div className="h-8 w-16 bg-gray-200 rounded" />
-              </div>
-            ))
-          : cards.map((c) => <StatCard key={c.title} {...c} />)}
-      </div>
-
-      {/* Receita e quebras por legendário */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow-lg lg:col-span-1">
-          <p className="text-sm text-gray-500 mb-1">Receita confirmada</p>
-          <p className="text-3xl font-bold">{formatBRL(summary?.receita_confirmada)}</p>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-lg lg:col-span-2">
-          <p className="text-sm text-gray-500 mb-3">Pagos por perfil</p>
-          <div className="flex gap-6">
-            <div className="flex-1">
-              <p className="text-xs uppercase text-gray-400">Legendários</p>
-              <p className="text-2xl font-semibold text-orange-700">{legend?.legendarios_pagos ?? '—'}</p>
+      <DashboardLayout>
+        {/* Wrapper raiz para bloquear overflow lateral */}
+        <div className="w-full min-w-0">
+          {/* Header */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6 min-w-0">
+            <h1 className="text-3xl font-extrabold text-gray-800">Visão Geral da Manada</h1>
+            <div className="text-sm text-gray-500 truncate">
+              Logado como <span className="font-semibold">{userEmail}</span>
             </div>
-            <div className="flex-1">
-              <p className="text-xs uppercase text-gray-400">Não-legendários</p>
-              <p className="text-2xl font-semibold text-gray-700">{legend?.nao_legendarios_pagos ?? '—'}</p>
+          </div>
+
+          {err && (
+            <div className="mb-6 rounded-md border border-red-200 bg-red-50 text-red-700 px-4 py-3">
+              {err}
+            </div>
+          )}
+
+          {/* GRID DE CARDS */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {loading
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="p-6 bg-white rounded-lg shadow-lg border-t-4 border-gray-200 animate-pulse"
+                  >
+                    <div className="h-4 w-24 bg-gray-200 rounded mb-4" />
+                    <div className="h-8 w-16 bg-gray-200 rounded" />
+                  </div>
+                ))
+              : cards.map((c) => <StatCard key={c.title} {...c} />)}
+          </div>
+
+          {/* Receita e quebras por legendário */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div className="bg-white p-6 rounded-lg shadow-lg lg:col-span-1">
+              <p className="text-sm text-gray-500 mb-1">Receita confirmada</p>
+              <p className="text-3xl font-bold">{formatBRL(summary?.receita_confirmada)}</p>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-lg lg:col-span-2">
+              <p className="text-sm text-gray-500 mb-3">Pagos por perfil</p>
+
+              {/* Linha com wrap + min-w-0 pra não estourar */}
+              <div className="flex flex-wrap gap-6 min-w-0">
+                <div className="flex-1 min-w-[160px]">
+                  <p className="text-xs uppercase text-gray-400">Legendários</p>
+                  <p className="text-2xl font-semibold text-orange-700">
+                    {legend?.legendarios_pagos ?? '—'}
+                  </p>
+                </div>
+                <div className="flex-1 min-w-[160px]">
+                  <p className="text-xs uppercase text-gray-400">Não-legendários</p>
+                  <p className="text-2xl font-semibold text-gray-700">
+                    {legend?.nao_legendarios_pagos ?? '—'}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </DashboardLayout>
+      </DashboardLayout>
     </RequireAuth>
   );
+
 }

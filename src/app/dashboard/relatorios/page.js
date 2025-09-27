@@ -143,145 +143,161 @@ export default function RelatoriosPage() {
 
   return (
     <RequireAuth fallback={<div className="p-6">Verificando acesso…</div>}>
-    <DashboardLayout>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-extrabold text-gray-800">Relatórios</h1>
-        <div className="flex gap-2 items-center">
-          <div className="flex items-center gap-2 border rounded-lg px-3 py-2">
-            <Calendar size={16} className="text-gray-500" />
-            <input
-              type="date"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              className="outline-none"
-              max={to || todayISO()}
-            />
-            <span className="text-gray-400">—</span>
-            <input
-              type="date"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              className="outline-none"
-              min={from}
-              max={todayISO()}
-            />
-          </div>
+      <DashboardLayout>
+        {/* Wrapper raiz para bloquear overflow horizontal */}
+        <div className="w-full min-w-0">
+          {/* Header + Ações */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6 min-w-0">
+            <h1 className="text-3xl font-extrabold text-gray-800">Relatórios</h1>
 
-          <button
-            onClick={fetchReports}
-            className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
-            disabled={loading}
-            title="Atualizar"
-          >
-            <RefreshCw size={18} className="mr-2" />
-            Atualizar
-          </button>
-
-          {/* ⬇️ Botão Exportar CSV */}
-          <button
-            onClick={handleDownloadCSV}
-            className="flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-            title="Exportar CSV (vendas por dia)"
-          >
-            <Download size={18} className="mr-2" />
-            Exportar CSV
-          </button>
-        </div>
-      </div>
-
-      {err && (
-        <div className="mb-6 rounded-md border border-red-200 bg-red-50 text-red-700 px-4 py-3">
-          {err}
-        </div>
-      )}
-
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {loading
-          ? Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="p-6 bg-white rounded-lg shadow-lg border-t-4 border-gray-200 animate-pulse">
-                <div className="h-4 w-24 bg-gray-200 rounded mb-4" />
-                <div className="h-8 w-16 bg-gray-200 rounded" />
+            <div className="flex gap-2 items-center flex-wrap">
+              <div className="flex items-center gap-2 border rounded-lg px-3 py-2 bg-white">
+                <Calendar size={16} className="text-gray-500 shrink-0" />
+                <input
+                  type="date"
+                  value={from}
+                  onChange={(e) => setFrom(e.target.value)}
+                  className="outline-none min-w-[9rem]"
+                  max={to || todayISO()}
+                />
+                <span className="text-gray-400">—</span>
+                <input
+                  type="date"
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                  className="outline-none min-w-[9rem]"
+                  min={from}
+                  max={todayISO()}
+                />
               </div>
-            ))
-          : cards.map((c) => <StatCard key={c.title} {...c} />)}
-      </div>
 
-      {/* Receita + Quebra por perfil */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow-lg">
-          <p className="text-sm text-gray-500 mb-1">Receita confirmada (total)</p>
-          <p className="text-3xl font-bold">{formatBRL(summary?.receita_confirmada)}</p>
-        </div>
+              <button
+                onClick={fetchReports}
+                className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                disabled={loading}
+                title="Atualizar"
+              >
+                <RefreshCw size={18} className="mr-2" />
+                Atualizar
+              </button>
 
-        <div className="bg-white p-6 rounded-lg shadow-lg lg:col-span-2">
-          <p className="text-sm text-gray-500 mb-3">Pagos por perfil</p>
-          <div className="flex gap-6">
-            <div className="flex-1">
-              <p className="text-xs uppercase text-gray-400">Legendários</p>
-              <p className="text-2xl font-semibold text-orange-700">{legend?.legendarios_pagos ?? "—"}</p>
-            </div>
-            <div className="flex-1">
-              <p className="text-xs uppercase text-gray-400">Não-legendários</p>
-              <p className="text-2xl font-semibold text-gray-700">{legend?.nao_legendarios_pagos ?? "—"}</p>
+              {/* Exportar CSV */}
+              <button
+                onClick={handleDownloadCSV}
+                className="flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                title="Exportar CSV (vendas por dia)"
+              >
+                <Download size={18} className="mr-2" />
+                Exportar CSV
+              </button>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Tabela de vendas por dia */}
-      <div className="bg-white p-6 rounded-lg shadow-lg">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-semibold text-gray-800">Vendas por dia</h2>
-          <p className="text-sm text-gray-500">
-            Período: <span className="font-medium">{from}</span> — <span className="font-medium">{to}</span>
-          </p>
-        </div>
+          {err && (
+            <div className="mb-6 rounded-md border border-red-200 bg-red-50 text-red-700 px-4 py-3">
+              {err}
+            </div>
+          )}
 
-        {loading ? (
-          <div className="h-40 flex items-center justify-center">
-            <span className="text-gray-500">Carregando série...</span>
+          {/* KPIs */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {loading
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="p-6 bg-white rounded-lg shadow-lg border-t-4 border-gray-200 animate-pulse">
+                    <div className="h-4 w-24 bg-gray-200 rounded mb-4" />
+                    <div className="h-8 w-16 bg-gray-200 rounded" />
+                  </div>
+                ))
+              : cards.map((c) => <StatCard key={c.title} {...c} />)}
           </div>
-        ) : sales.length === 0 ? (
-          <p className="text-gray-500">Sem dados para o período selecionado.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Dia
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Pagos
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Receita
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {sales.map((row, idx) => {
-                  const { dateKey, paidKey, revenueKey } = salesColumns;
-                  const dia = row[dateKey];
-                  const pagos = paidKey ? row[paidKey] : undefined;
-                  const receita = revenueKey ? row[revenueKey] : undefined;
-                  return (
-                    <tr key={idx} className="hover:bg-gray-50">
-                      <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-800">{dia}</td>
-                      <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-800">{pagos ?? "—"}</td>
-                      <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-800">
-                        {revenueKey ? formatBRL(receita) : "—"}
-                      </td>
+
+          {/* Receita + Quebra por perfil */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div className="bg-white p-6 rounded-lg shadow-lg">
+              <p className="text-sm text-gray-500 mb-1">Receita confirmada (total)</p>
+              <p className="text-3xl font-bold">{formatBRL(summary?.receita_confirmada)}</p>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-lg lg:col-span-2">
+              <p className="text-sm text-gray-500 mb-3">Pagos por perfil</p>
+              <div className="flex flex-wrap gap-6 min-w-0">
+                <div className="flex-1 min-w-[160px]">
+                  <p className="text-xs uppercase text-gray-400">Legendários</p>
+                  <p className="text-2xl font-semibold text-orange-700">
+                    {legend?.legendarios_pagos ?? "—"}
+                  </p>
+                </div>
+                <div className="flex-1 min-w-[160px]">
+                  <p className="text-xs uppercase text-gray-400">Não-legendários</p>
+                  <p className="text-2xl font-semibold text-gray-700">
+                    {legend?.nao_legendarios_pagos ?? "—"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabela de vendas por dia */}
+          <div className="bg-white p-6 rounded-lg shadow-lg">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4 min-w-0">
+              <h2 className="text-2xl font-semibold text-gray-800">Vendas por dia</h2>
+              <p className="text-sm text-gray-500">
+                Período:{" "}
+                <span className="font-medium">{from}</span> —{" "}
+                <span className="font-medium">{to}</span>
+              </p>
+            </div>
+
+            {loading ? (
+              <div className="h-40 flex items-center justify-center">
+                <span className="text-gray-500">Carregando série...</span>
+              </div>
+            ) : sales.length === 0 ? (
+              <p className="text-gray-500">Sem dados para o período selecionado.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full table-fixed divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[40%]">
+                        Dia
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[20%]">
+                        Pagos
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[40%]">
+                        Receita
+                      </th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {sales.map((row, idx) => {
+                      const { dateKey, paidKey, revenueKey } = salesColumns;
+                      const dia = row[dateKey];
+                      const pagos = paidKey ? row[paidKey] : undefined;
+                      const receita = revenueKey ? row[revenueKey] : undefined;
+                      return (
+                        <tr key={idx} className="hover:bg-gray-50">
+                          <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-800">
+                            {dia}
+                          </td>
+                          <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-800">
+                            {pagos ?? "—"}
+                          </td>
+                          <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-800">
+                            {revenueKey ? formatBRL(receita) : "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-    </DashboardLayout>
+        </div>
+      </DashboardLayout>
     </RequireAuth>
   );
+
 }
