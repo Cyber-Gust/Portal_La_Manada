@@ -480,7 +480,7 @@ export default function InscricaoPage() {
             border: '1px solid #ddd',
             padding: '10px',
             borderRadius: '4px',
-            backgroundColor: '#f9f9f9',
+            backgroundColor: 'none',
             }}
         >
             <strong className="color-orange" style={{ fontSize: '18px' }}>
@@ -497,7 +497,7 @@ export default function InscricaoPage() {
             </small>
             <br />
             <small style={{ color: '#666' }}>
-            (Ingresso: R$ {formData.valorInscricao} + Taxas/Antecipação: {taxaFormatada})
+            (Ingresso: R$ {formData.valorInscricao} + Taxas: {taxaFormatada})
             </small>
         </p>
 
@@ -647,7 +647,7 @@ export default function InscricaoPage() {
             border: '1px solid #ddd',
             padding: '10px',
             borderRadius: '4px',
-            backgroundColor: '#f9f9f9',
+            backgroundColor: 'none',
             }}
         >
             <strong className="color-orange" style={{ fontSize: '18px' }}>
@@ -655,7 +655,7 @@ export default function InscricaoPage() {
             </strong>
             <br />
             <small style={{ color: '#666' }}>
-            (Ingresso: R$ {formData.valorInscricao} + Taxas/Antecipação: {taxaFormatada})
+            (Ingresso: R$ {formData.valorInscricao} + Taxas: {taxaFormatada})
             </small>
         </p>
 

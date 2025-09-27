@@ -8,8 +8,33 @@ import { Bebas_Neue } from 'next/font/google';
 const bebas = Bebas_Neue({ weight: '400', subsets: ['latin'] });
 
 export const metadata = {
-  title: 'Manada Las Campanas — Comprar Ingresso',
-  description: 'Inscrição e pagamento',
+  title: "Manada – Check-in do Movimento Legendários",
+  description: "Faça seu check-in no evento Manada do Movimento Legendários de forma rápida e segura.",
+  icons: {
+    icon: "/ico.png", // Favicon
+  },
+  openGraph: {
+    title: "Manada – Check-in do Movimento Legendários",
+    description: "Garanta sua entrada no evento Manada do Movimento Legendários. Inscreva-se e participe!",
+    url: "https://www.seusite.com/manada", // substitua pelo link real do evento
+    siteName: "Movimento Legendários",
+    images: [
+      {
+        url: "/preview.png",
+        width: 1200,
+        height: 630,
+        alt: "Preview do evento Manada",
+      },
+    ],
+    locale: "pt_BR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Manada – Check-in do Movimento Legendários",
+    description: "Garanta sua entrada no evento Manada do Movimento Legendários. Inscreva-se agora!",
+    images: ["/preview.png"],
+  },
 };
 
 // viewport por metadata (sem <head> manual)
