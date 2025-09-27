@@ -1,12 +1,11 @@
 // components/DashboardLayout.jsx
 "use client";
 
-import Image from 'next/image';
-import { useEffect, useState, useMemo } from "react";
+import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { useSessionContext } from "@supabase/auth-helpers-react";
 import { usePathname, useRouter } from "next/navigation";
-import SignOutButton from './SignOutButton';
 import {
   Menu,
   X,
@@ -38,15 +37,10 @@ const SidebarLink = ({ icon: Icon, text, href, isExpanded, active }) => {
     >
       <Icon size={22} className={cx("shrink-0", iconCls)} />
       {isExpanded && <span className="ml-3 font-medium truncate">{text}</span>}
-      {!isExpanded && (
-        <span
-          className="pointer-events-none absolute left-16 z-10 opacity-0 group-hover:opacity-100
-                     bg-black/80 text-white text-xs rounded px-2 py-1 translate-y-[-2px]"
-          role="tooltip"
-        >
-          {text}
-        </span>
-      )}
+      {/* Desliga tooltip no mobile pra não causar overflow lateral */}
+      <span className="sr-only md:not-sr-only md:pointer-events-none md:absolute md:left-16 md:z-10 md:opacity-0 md:group-hover:opacity-100 md:bg-black/80 md:text-white md:text-xs md:rounded md:px-2 md:py-1 md:translate-y-[-2px]">
+        {text}
+      </span>
     </Link>
   );
 };
@@ -56,11 +50,9 @@ export default function DashboardLayout({ children }) {
   const router = useRouter();
   const { isLoading, session } = useSessionContext();
 
-  // estados
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true); // desktop
+  const [isMobileOpen, setIsMobileOpen] = useState(false); // mobile drawer
 
-  // ✅ MOVIDO PARA CIMA DOS RETURNS (ordem estável de hooks)
   const navItems = useMemo(
     () => [
       { icon: Home, text: "Início", href: "/dashboard" },
@@ -76,27 +68,26 @@ export default function DashboardLayout({ children }) {
     pathname === href ||
     (href !== "/dashboard" && pathname?.startsWith(href));
 
-  // Gatekeeper de sessão (client)
   useEffect(() => {
     if (isLoading) return;
-    if (!session)
+    if (!session) {
       router.replace(
         `/login?redirectTo=${encodeURIComponent(pathname || "/dashboard")}`
       );
+    }
   }, [isLoading, session, pathname, router]);
 
-  // early-returns OK, todos hooks já foram declarados acima
   if (isLoading) return <div className="min-h-screen bg-gray-50" />;
   if (!session) return null;
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    // 🔒 Mata vazamento horizontal no nível raiz
+    <div className="flex min-h-screen bg-gray-50 overflow-x-hidden">
       {/* Sidebar desktop */}
       <aside
         className={cx(
-          "relative z-30 flex flex-col bg-orange-600 text-white transition-all duration-300 ease-in-out",
-          isSidebarExpanded ? "w-64" : "w-20",
-          "hidden md:flex"
+          "relative z-30 hidden md:flex flex-col bg-orange-600 text-white transition-all duration-300 ease-in-out",
+          isSidebarExpanded ? "w-64" : "w-20"
         )}
       >
         <button
@@ -142,16 +133,27 @@ export default function DashboardLayout({ children }) {
         </div>
       </aside>
 
-      {/* Sidebar Mobile */}
+      {/* Sidebar Mobile (drawer do topo ao rodapé, sem “ficar atrás” de nada) */}
       <div className="md:hidden">
-        <button
-          onClick={() => setIsMobileOpen((v) => !v)}
-          className="fixed top-4 left-4 z-40 rounded-md bg-orange-600 p-2 text-white shadow-lg focus:outline-none focus:ring-2 focus:ring-white/40"
-          aria-label="Abrir/fechar menu"
-        >
-          {isMobileOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        {/* Topbar mobile fixa com hambúrguer centralizado verticalmente */}
+        <div className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200 h-14 flex items-center justify-between px-4">
+          <button
+            onClick={() => setIsMobileOpen((v) => !v)}
+            className="rounded-md bg-orange-600 p-2 text-white shadow focus:outline-none focus:ring-2 focus:ring-orange-400"
+            aria-label="Abrir/fechar menu"
+          >
+            {isMobileOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+          <div className="flex items-center">
+            <h1 className="text-base font-semibold text-gray-800 tracking-wide">
+              LA MANADA
+            </h1>
+          </div>
+          {/* Espaçador simétrico pro layout ficar centralizado visualmente */}
+          <div className="w-9" />
+        </div>
 
+        {/* Overlay escuro atrás do drawer */}
         {isMobileOpen && (
           <div
             className="fixed inset-0 z-30 bg-black/40"
@@ -159,16 +161,28 @@ export default function DashboardLayout({ children }) {
           />
         )}
 
+        {/* Drawer */}
         <aside
           className={cx(
-            "fixed top-0 left-0 z-40 h-full w-72 bg-orange-600 text-white shadow-2xl transform transition-transform duration-300",
+            "fixed inset-y-0 left-0 z-40 h-full w-72 bg-orange-600 text-white shadow-2xl transform transition-transform duration-300 flex flex-col",
             isMobileOpen ? "translate-x-0" : "-translate-x-full"
           )}
+          aria-label="Menu lateral"
         >
-          <div className="px-4 py-5">
-            <h1 className="text-2xl font-extrabold tracking-wider">LA MANADA</h1>
+          {/* Cabeçalho do drawer ocupando topo inteiro */}
+          <div className="px-4 h-14 flex items-center justify-between border-b border-white/20">
+            <h2 className="text-xl font-extrabold tracking-wider">Menu</h2>
+            <button
+              onClick={() => setIsMobileOpen(false)}
+              className="rounded p-1 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/40"
+              aria-label="Fechar menu"
+            >
+              <X size={22} />
+            </button>
           </div>
-          <nav className="px-2">
+
+          {/* Navegação centralizada verticalmente com scroll se precisar */}
+          <nav className="flex-1 overflow-y-auto px-2 py-2">
             {navItems.map((item) => (
               <Link
                 key={item.href}
@@ -199,8 +213,8 @@ export default function DashboardLayout({ children }) {
 
       {/* Área principal */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="bg-white shadow-sm px-4 md:px-6 py-3 flex items-center justify-between w-full">
+        {/* Header desktop (no mobile o header é a topbar fixa acima) */}
+        <header className="hidden md:flex bg-white shadow-sm px-4 md:px-6 py-3 items-center justify-between w-full sticky top-0 z-20">
           <h2 className="text-lg md:text-xl font-semibold text-gray-800">
             Painel de Controle
           </h2>
@@ -209,39 +223,31 @@ export default function DashboardLayout({ children }) {
               <p className="text-sm text-gray-700 font-medium">Bem-vindo(a)!</p>
             </div>
             <div className="relative w-9 h-9 bg-orange-200 rounded-full border border-orange-600 overflow-hidden">
-      {/* A imagem será posicionada de forma absoluta para preencher o div pai.
-        'object-cover' garante que a imagem preencha o container sem distorção, 
-        cortando as bordas se necessário.
-        'fill' (com next/image) ou 'w-full h-full' (com img normal) garantem que ela ocupe todo o espaço.
-      */}
-      <Image
-        src="/profile.png" // Caminho relativo à pasta `public`
-        alt="Foto de Perfil"
-        fill // Preenche o elemento pai com 'position: absolute'
-        className="object-cover"
-      />
-      {/* Ou, se não quiser usar next/image: */}
-      {/*
-      <img
-        src="/profile.jpg" // Caminho relativo à pasta `public`
-        alt="Foto de Perfil"
-        className="absolute inset-0 w-full h-full object-cover"
-      />
-      */}
-    </div>
+              <Image
+                src="/profile.png"
+                alt="Foto de Perfil"
+                fill
+                className="object-cover"
+              />
+            </div>
           </div>
         </header>
 
-        {/* Conteúdo */}
-        <main className="p-4 md:p-6 flex-1 overflow-y-auto">{children}</main>
+        {/* Empurra o conteúdo pra baixo da topbar no mobile */}
+        <div className="md:hidden h-14 shrink-0" />
 
-        {/* Footer */}
-        <footer className="bg-gray-900 text-white flex md:px-16 px-16 justify-between py-4 text-center">
+        {/* Conteúdo: rolagem vertical aqui; mata overflow-x na página */}
+        <main className="p-4 md:p-6 flex-1 overflow-y-auto overflow-x-hidden">
+          {children}
+          {/* dica: dentro dos seus cards/tabelas, use overflow-x-auto para tabelas largas */}
+        </main>
+
+        {/* Footer: não fixo; aparece após o conteúdo. */}
+        <footer className="bg-gray-900 text-white flex md:px-16 px-6 justify-between py-4 text-center shrink-0">
           <p className="text-xs md:text-sm">
-            © {new Date().getFullYear()} Las Camopanas — Movimento Legendários. 
-          </p><p className="text-xs md:text-sm">
-             Desenvolvido por - BitBloom AI
+            © {new Date().getFullYear()} Las Campanas — Movimento Legendários.
           </p>
+          <p className="text-xs md:text-sm">Desenvolvido por — BitBloom AI</p>
         </footer>
       </div>
     </div>
