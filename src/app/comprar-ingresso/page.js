@@ -70,7 +70,7 @@ export default function InscricaoPage() {
     const [qrReady, setQrReady] = useState(false);
     const ticketPollRef = useRef(null);
 
-    const VALOR_BASE_INSCRICAO = '10.00'; 
+    const VALOR_BASE_INSCRICAO = '5.00'; 
     // NOVO ESTADO: Valor final que será cobrado, inicializado com o valor base.
     const [valorFinalCobranca, setValorFinalCobranca] = useState(VALOR_BASE_INSCRICAO);
 
