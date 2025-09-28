@@ -323,7 +323,6 @@ export default function MembrosPage() {
                 <Download size={18} className="mr-2" />
                 Exportar CSV
               </button>
-
               <button
                 onClick={handleOpenCreateModal}
                 className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors shrink-0"
