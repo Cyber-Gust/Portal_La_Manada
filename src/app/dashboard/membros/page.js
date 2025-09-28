@@ -347,7 +347,7 @@ export default function MembrosPage() {
           </div>
 
           {/* Tabela */}
-          <div className="overflow-x-auto bg-white rounded-lg shadow-xl">
+          <div className="overflow-x bg-white rounded-lg shadow-xl">
             <table className="min-w-full table-fixed divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>

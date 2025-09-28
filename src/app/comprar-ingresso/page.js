@@ -444,14 +444,13 @@ export default function InscricaoPage() {
             </p>
             <p style={{ marginBottom: '15px', fontSize: '16px' }}>Como você prefere pagar?</p>
 
-            <button
-                type="button"
-                className="base-btn"
-                onClick={() => !isLoading && setFlowStatus('card')}
-                disabled={isLoading}
+            <a
+                href="https://www.asaas.com/c/231edy12snpnbbt6" // Mude esta URL para o seu destino
+                className="base-btn" // Mantém a mesma classe de estilo
+                // Remova o onClick, type e disabled se eles não forem mais necessários
             >
                 Selecionar Cartão de Crédito
-            </button>
+            </a>
 
             <button
                 type="button"
