@@ -3,7 +3,7 @@ import axios from 'axios';
 import { ensureAttendee } from '../../../lib/commerce';
 
 const ASAAS_BASE_URL = process.env.ASAAS_BASE_URL || 'https://api.asaas.com/v3';
-const ASAAS_API_KEY  = process.env.ASAAS_API_KEY || "$aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OjI1NzZjYzYzLTk2MTQtNDQ5My1hODhmLWNhODU2NGNhZGI0OTo6JGFhY2hfMTExYjBjZTItYTNlZC00OGEwLTgzODktOWY5OGI4NDgxNTU5";
+const ASAAS_API_KEY  = process.env.ASAAS_API_KEY || "$aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmE2MzAwZDEyLWU4MjktNDM5ZC1iMTgxLTc2MTQwYTI3Mzk2ZDo6JGFhY2hfYTE5N2E2NDAtN2M5NC00NzYwLTg5NWUtMDNlNzVmNTAxNWY4";
 
 const asaasApi = axios.create({
   baseURL: ASAAS_BASE_URL,
