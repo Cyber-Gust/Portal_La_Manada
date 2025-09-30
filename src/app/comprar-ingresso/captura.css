@@ -17,134 +17,41 @@ html {
 body {
     font-family: 'Bebas Neue', sans-serif;
     color: white;
-    margin: 0;
-
-    background:
-        linear-gradient(to right, #111111 0%, rgba(17, 17, 17, 0.8) 50%, rgba(17, 17, 17, 0) 70%),
-        url('/captura-images/wpp.png');
+    background-image: url('/captura-images/wpp.png');
+    background-position: center;
     background-size: cover;
-    background-position: right center;
     background-repeat: no-repeat;
-    background-attachment: fixed;
-    display: flex;
+    background-color: #111111;
     justify-content: center;
-    align-items: flex-start;
-    min-height: 100vh;
+    display: flex;
+    overflow: auto;
+    align-items: center;
 }
 
-.color-orange {
+.color-orange{
     color: #fb3a01;
 }
 
 .container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100vw;
-    min-height: 100vh;
-    height: auto;
-}
-
-
-.range {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 30px;
-    background-color: #1b1b1b;
-    overflow: hidden;
-
-    display: flex;
-}
-
-.range-track {
-    display: flex;
-    gap: 50px;
-    align-items: center;
-    justify-content: center;
-    white-space: nowrap;
     width: 100%;
-    animation: scroll 15s linear infinite;
-}
-
-.range-element {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.range-element>img {
-    width: 20px;
-}
-
-.range-element>h1 {
-    font-size: 17px;
-}
-
-@keyframes scroll {
-    from {
-        transform: translateX(0);
-    }
-
-    to {
-        transform: translateX(-50%);
-    }
-}
-
-
-.main-container {
-    width: 100vw;
     height: auto;
-    padding: 100px;
-    box-sizing: border-box;
+    /* Certifique-se de que 'wpp.png' e 'lgnd-ico.png' estão na pasta public/captura-images */
 
 
     display: flex;
-    align-items: center;
-    justify-content: space-evenly;
-}
-
-.description {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-}
-
-.desc-text {
-    line-height: 2em;
-}
-
-.logo-manada {
-    width: 400px;
-}
-
-.camisa {
-    width: 350px;
-}
-
-.form-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-
-    background-color: #111111cb;
-    padding: 50px;
-    border-radius: 10px;
 }
 
 .modal-content {
     width: 400px;
-    height: 100%;
-    /* background-color: #1b1b1bc4; */
+    background-color: #1b1b1bc4;
     border-radius: 15px;
-    /* height: auto; */
+    height: auto;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    padding: 30px 50px;
 
     gap: 5px;
 
@@ -305,34 +212,7 @@ label {
     display: block;
 }
 
-@media(max-width:1000px) {
-    .main-container {
-        padding: 100px 10px;
-    }
-}
-
-@media (max-width: 800px) {
-
-    body {
-        font-family: 'Bebas Neue', sans-serif;
-        color: white;
-        margin: 0;
-        background:
-            linear-gradient(to bottom, #111111 0%, rgba(17, 17, 17, 0.8) 80%, rgba(17, 17, 17, 0) 100%),
-            url('/captura-images/wpp.png');
-        background-size: cover;
-        background-position:center;
-    }
-
-    .main-container {
-        flex-direction: column;
-        gap: 20px;
-    }
-
-    .desc-text {
-        max-width: 370px;
-        line-height: 2em;
-    }
+@media (max-width: 768px) {
 
     input,
     select,
