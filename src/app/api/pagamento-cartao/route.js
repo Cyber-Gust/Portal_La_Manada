@@ -3,17 +3,23 @@ import { NextResponse } from 'next/server';
 import axios from 'axios';
 import { getActiveEventId, createPendingTicket } from '../../../lib/commerce';
 
-const ASAAS_BASE_URL = process.env.ASAAS_BASE_URL || 'https://api.asaas.com/v3';
-const ASAAS_API_KEY  = process.env.ASAAS_API_KEY || "$aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmE2MzAwZDEyLWU4MjktNDM5ZC1iMTgxLTc2MTQwYTI3Mzk2ZDo6JGFhY2hfYTE5N2E2NDAtN2M5NC00NzYwLTg5NWUtMDNlNzVmNTAxNWY4";
+const ASAAS_BASE_URL = process.env.ASAAS_BASE_URL || "https://api.asaas.com/v3";
+const ASAAS_API_KEY  = process.env.ASAAS_API_KEY;
+
+const asaas = axios.create({
+  baseURL: ASAAS_BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+    "access_token": ASAAS_API_KEY,
+    "User-Agent": process.env.ASAAS_USER_AGENT || "LGND-La-Manada/1.0 (+andersonserrano@icloud.com)",
+  },
+  timeout: 20000,
+});
 
 const SANDBOX_DEFAULT_POSTAL_CODE = process.env.SANDBOX_DEFAULT_POSTAL_CODE || '30130010';
 const SANDBOX_DEFAULT_ADDRESS_NUM = process.env.SANDBOX_DEFAULT_ADDRESS_NUM || '100';
 const SANDBOX_DEFAULT_PHONE       = process.env.SANDBOX_DEFAULT_PHONE       || '31999999999';
 
-const asaas = axios.create({
-  baseURL: ASAAS_BASE_URL,
-  headers: { 'Content-Type': 'application/json', access_token: ASAAS_API_KEY },
-});
 
 const onlyDigits = (s='') => String(s).replace(/\D/g, '');
 const nonEmpty = (v) => v !== undefined && v !== null && String(v).trim() !== '';

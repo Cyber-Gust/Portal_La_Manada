@@ -2,12 +2,17 @@ import { NextResponse } from 'next/server';
 import axios from 'axios';
 import { getActiveEventId, createPendingTicket } from '../../../lib/commerce';
 
-const ASAAS_BASE_URL = process.env.ASAAS_BASE_URL || 'https://api.asaas.com/v3';
-const ASAAS_API_KEY  = process.env.ASAAS_API_KEY || "$aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmE2MzAwZDEyLWU4MjktNDM5ZC1iMTgxLTc2MTQwYTI3Mzk2ZDo6JGFhY2hfYTE5N2E2NDAtN2M5NC00NzYwLTg5NWUtMDNlNzVmNTAxNWY4";
+const ASAAS_BASE_URL = process.env.ASAAS_BASE_URL || "https://api.asaas.com/v3";
+const ASAAS_API_KEY  = process.env.ASAAS_API_KEY;
 
-const asaasApi = axios.create({
+const asaas = axios.create({
   baseURL: ASAAS_BASE_URL,
-  headers: { 'Content-Type': 'application/json', access_token: ASAAS_API_KEY },
+  headers: {
+    "Content-Type": "application/json",
+    "access_token": ASAAS_API_KEY,
+    "User-Agent": process.env.ASAAS_USER_AGENT || "LGND-La-Manada/1.0 (+andersonserrano@icloud.com)",
+  },
+  timeout: 20000,
 });
 
 // Funções para controle de data (Adicionadas para robustez do PIX)
@@ -27,7 +32,7 @@ export async function POST(request) {
     
     if (!customerId) return NextResponse.json({ error: 'customerId ausente.' }, { status: 400 });
 
-    const pay = await asaasApi.post('/payments', {
+    const pay = await asaas.post('/payments', {
       customer: customerId,
       billingType: 'PIX',
       value: Number(valor), // Valor com taxas (para Asaas)
@@ -62,7 +67,7 @@ export async function POST(request) {
     // pequena espera ajuda no sandbox/produção
     await new Promise(r => setTimeout(r, 400));
 
-    const qr = await asaasApi.get(`/payments/${paymentId}/pixQrCode`);
+    const qr = await asaas.get(`/payments/${paymentId}/pixQrCode`);
     const encoded = qr?.data?.encodedImage || null;
     const pixCopiaECola = qr?.data?.payload || null;
     
