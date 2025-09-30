@@ -377,7 +377,7 @@ export default function InscricaoPage() {
                     <div className="modal-itn">
                         <img src="https://img.icons8.com/?size=100&id=15BVldRxijS1&format=png&color=fb3a01" alt="Data" />
                         <h4 className="modal-value">11 de Outubro | Sábado</h4> 
-                        <span className="orange-txt">140,00</span>
+                        <h4 className="color-orange">R$140,00</h4>
                     </div>
 
                     
