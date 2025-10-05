@@ -57,6 +57,7 @@ export default function DashboardLayout({ children }) {
     () => [
       { icon: Home, text: "Início", href: "/dashboard" },
       { icon: Users, text: "Cadastros", href: "/dashboard/membros" },
+      { icon: Ticket, text: "Gerar Ticket", href: "/dashboard/gerar-ticket" },
       { icon: ScanLine, text: "Check-in", href: "/dashboard/checkin" },
       { icon: QrCode, text: "Scanner", href: "/dashboard/scanner" },
       { icon: BarChart3, text: "Relatórios", href: "/dashboard/relatorios" },
@@ -87,7 +88,7 @@ export default function DashboardLayout({ children }) {
       <aside
         className={cx(
           "relative z-30 hidden md:flex flex-col bg-orange-600 text-white transition-all duration-300 ease-in-out",
-          isSidebarExpanded ? "w-64" : "w-20"
+          isSidebarExpanded ? "w-64" : "w-16"
         )}
       >
         <button
