@@ -8,27 +8,36 @@ export async function GET(req) {
     const q = (url.searchParams.get('q') || '').trim();
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '20', 10), 100);
     const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10), 0);
+    
+    // Novos parâmetros para o filtro de data
+    const startDate = url.searchParams.get('startDate');
+    const endDate = url.searchParams.get('endDate');
 
-    // --- CORREÇÃO APLICADA AQUI ---
-    // Agora fazemos uma única consulta usando um LEFT JOIN para encontrar
-    // attendees onde a correspondência na tabela de tickets é NULA.
-    // Esta é a forma correta e mais performática.
+    // Lógica principal: Busca apenas attendees que NÃO TÊM NENHUM ticket.
     let query = sbAdmin
       .from('attendees')
       .select('id, name, created_at, tickets!left(id)', { count: 'exact' })
-      .is('tickets.id', null); // A mágica acontece aqui: filtramos onde o ticket NÃO existe.
+      .is('tickets.id', null); // Garante que só vêm participantes sem NENHUM ticket
 
+    // Aplica o filtro de pesquisa por nome
     if (q) {
       query = query.ilike('name', `%${q}%`);
     }
 
-    // A ordenação e paginação continuam funcionando normalmente
+    // Aplica os filtros de data, se existirem
+    if (startDate) {
+      query = query.gte('created_at', startDate);
+    }
+    if (endDate) {
+      // Usamos lte (menor ou igual) para incluir o dia final inteiro
+      query = query.lte('created_at', `${endDate}T23:59:59`);
+    }
+
     query = query.order('created_at', { ascending: true }).range(offset, offset + limit - 1);
 
     const { data, error, count } = await query;
     if (error) throw error;
 
-    // A resposta para o frontend continua a mesma
     return NextResponse.json({ success: true, data, count });
 
   } catch (e) {
