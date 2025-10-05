@@ -9,33 +9,26 @@ export async function GET(req) {
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '20', 10), 100);
     const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10), 0);
 
-    // 1. Pega os IDs de todos os attendees que JÁ TÊM um ticket
-    const { data: ticketedAttendees, error: ticketErr } = await sbAdmin
-      .from('tickets')
-      .select('attendee_id');
-
-    if (ticketErr) throw new Error(`Falha ao buscar IDs de tickets: ${ticketErr.message}`);
-    
-    const ticketedIds = ticketedAttendees.map(t => t.attendee_id);
-
-    // 2. Busca os attendees cujo ID NÃO ESTÁ na lista de quem já tem ticket
+    // --- CORREÇÃO APLICADA AQUI ---
+    // Agora fazemos uma única consulta usando um LEFT JOIN para encontrar
+    // attendees onde a correspondência na tabela de tickets é NULA.
+    // Esta é a forma correta e mais performática.
     let query = sbAdmin
       .from('attendees')
-      .select('id, name, created_at', { count: 'exact' });
+      .select('id, name, created_at, tickets!left(id)', { count: 'exact' })
+      .is('tickets.id', null); // A mágica acontece aqui: filtramos onde o ticket NÃO existe.
 
-    if (ticketedIds.length > 0) {
-      query = query.not('id', 'in', `(${ticketedIds.join(',')})`);
-    }
-    
     if (q) {
       query = query.ilike('name', `%${q}%`);
     }
 
+    // A ordenação e paginação continuam funcionando normalmente
     query = query.order('created_at', { ascending: true }).range(offset, offset + limit - 1);
 
     const { data, error, count } = await query;
     if (error) throw error;
 
+    // A resposta para o frontend continua a mesma
     return NextResponse.json({ success: true, data, count });
 
   } catch (e) {
