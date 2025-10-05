@@ -88,8 +88,8 @@ export default function GerarTicketPage() {
             <Ticket className="mr-3" /> Gerar Ticket Manual
           </h1>
           <p className="mb-6 text-gray-600">
-            {/* --- CORREÇÃO APLICADA AQUI --- */}
-            Esta página lista apenas os cadastros que ainda não possuem um ticket de entrada. Use o botão 'Gerar Ticket' para criar um ingresso pago manualmente.
+            {/* --- CORREÇÃO DEFINITIVA APLICADA AQUI --- */}
+            {`Esta página lista apenas os cadastros que ainda não possuem um ticket de entrada. Use o botão "Gerar Ticket" para criar um ingresso pago manualmente.`}
           </p>
 
           {/* Barra de Ações */}
