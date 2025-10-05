@@ -56,7 +56,7 @@ export default function DashboardLayout({ children }) {
   const navItems = useMemo(
     () => [
       { icon: Home, text: "Início", href: "/dashboard" },
-      { icon: Users, text: "Membros", href: "/dashboard/membros" },
+      { icon: Users, text: "Cadastros", href: "/dashboard/membros" },
       { icon: ScanLine, text: "Check-in", href: "/dashboard/checkin" },
       { icon: QrCode, text: "Scanner", href: "/dashboard/scanner" },
       { icon: BarChart3, text: "Relatórios", href: "/dashboard/relatorios" },
