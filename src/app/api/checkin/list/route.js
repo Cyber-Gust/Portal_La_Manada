@@ -31,7 +31,7 @@ export async function GET(req) {
       query = query.eq('is_inside', false);
     }
 
-    query = query.order('last_update', { ascending: false }).range(offset, offset + limit - 1);
+    query = query.order('attendee_name', { ascending: true }).range(offset, offset + limit - 1);
 
     const { data, error, count } = await query;
     if (error) throw error;

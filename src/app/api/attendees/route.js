@@ -28,7 +28,40 @@ export async function GET(req) {
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '20', 10), 100);
     const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10), 0);
 
-    let query = sbAdmin.from('attendees').select('*', { count: 'exact' });
+    // 1. Buscar os IDs de todos os participantes com ticket PAGO
+    //    Baseado na sua lógica do POST, o status é criado como 'pending' e deve virar 'paid'
+    const { data: ticketData, error: ticketError } = await sbAdmin
+      .from('tickets')
+      .select('attendee_id')
+      .eq('status', 'paid'); // <-- Filtro principal aqui!
+
+    if (ticketError) {
+      throw new Error(`Falha ao buscar tickets: ${ticketError.message}`);
+    }
+
+    const paidAttendeeIds = ticketData.map(t => t.attendee_id);
+
+    // 2. Se não houver ninguém com ticket pago, retorna uma lista vazia imediatamente
+    if (paidAttendeeIds.length === 0) {
+      if (isCsv(req.url)) {
+        const csv = toCSV([]);
+        return new NextResponse(csv, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/csv; charset=utf-8',
+            'Content-Disposition': 'attachment; filename="attendees_paid.csv"',
+            'Cache-Control': 'no-store',
+          },
+        });
+      }
+      return NextResponse.json({ success: true, data: [], count: 0 });
+    }
+
+    // 3. Monta a query principal, agora filtrando pelos IDs obtidos
+    let query = sbAdmin
+      .from('attendees')
+      .select('*', { count: 'exact' })
+      .in('id', paidAttendeeIds); // <-- A MÁGICA ACONTECE AQUI!
 
     if (q) {
       query = query.or(`name.ilike.%${q}%,email.ilike.%${q}%,phone.ilike.%${q}%`);
@@ -45,7 +78,7 @@ export async function GET(req) {
         status: 200,
         headers: {
           'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': 'attachment; filename="attendees.csv"',
+          'Content-Disposition': 'attachment; filename="attendees_paid.csv"',
           'Cache-Control': 'no-store',
         },
       });
