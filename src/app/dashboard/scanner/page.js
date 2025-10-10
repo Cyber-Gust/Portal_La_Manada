@@ -42,6 +42,12 @@ export default function ScannerPage() {
   const [manual, setManual] = useState("");
   const fileInputRef = useRef(null);
 
+  // Anti-mitra: 3s entre decodificações (corta bipadas em sequência)
+  const COOLDOWN_MS = 3000;
+  const isCoolingRef = useRef(false);
+  const resumeTmrRef = useRef(null);
+  const lastTextRef = useRef(""); // opcional: evita repetido idêntico no mesmo cooldown
+
   // Responsivo: tamanho do qrbox baseado na largura da tela
   const qrboxSize = useMemo(() => {
     if (typeof window === "undefined") return 320;
@@ -104,8 +110,30 @@ export default function ScannerPage() {
           formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
         },
         async (decodedText) => {
+          // anti-spam: se estamos no cooldown, ignora (sem beep extra)
+          if (isCoolingRef.current) return;
+
+          // opcional: ignora leitura idêntica dentro do cooldown
+          if (decodedText === lastTextRef.current && isCoolingRef.current) return;
+          lastTextRef.current = decodedText;
+
+          // inicia cooldown e pausa o scanner (corta múltiplas decodificações)
+          isCoolingRef.current = true;
+          try {
+            html5qrRef.current?.pause(true);
+          } catch {}
+
+          // agenda retomada após 3s
+          if (resumeTmrRef.current) clearTimeout(resumeTmrRef.current);
+          resumeTmrRef.current = setTimeout(() => {
+            try { html5qrRef.current?.resume(); } catch {}
+            isCoolingRef.current = false;
+          }, COOLDOWN_MS);
+
+          // evita duplo POST
           if (busy) return;
           setBusy(true);
+
           try {
             const res = await fetch("/api/checkin/toggle", {
               method: "POST",
@@ -113,17 +141,20 @@ export default function ScannerPage() {
               body: JSON.stringify({ qrCodeValue: decodedText, action: "checkin" }),
             });
             const json = await res.json();
+
             if (!res.ok || json.success === false) {
               setLastResult({ kind: "error", title: "ACESSO NEGADO!", message: json.error || "Ingresso inválido.", status: res.status });
             } else {
               setLastResult({ kind: "success", title: "ACESSO LIBERADO!", message: json.message || "Check-in ok.", ticket: json.ticket, status: res.status });
             }
-            setHistory(prev => [
+
+            setHistory(prev => ([
               { ts: new Date().toLocaleTimeString("pt-BR"), value: String(decodedText).slice(0, 28), ok: res.ok, name: json?.ticket?.user?.name ?? "—", status: res.status },
               ...prev,
-            ].slice(0, 12));
+            ].slice(0, 12)));
           } finally {
-            setTimeout(() => setBusy(false), 2500); // cooldown de ~2.5s
+            // pode manter esse cooldown visual do busy; quem manda no beep é o pause/resume
+            setTimeout(() => setBusy(false), 2500);
           }
         },
         () => { /* frame error: ignora */ }
@@ -145,6 +176,13 @@ export default function ScannerPage() {
   const stop = useCallback(async () => {
     setScanning(false);
     try {
+      // limpa timers e flags do cooldown
+      if (resumeTmrRef.current) {
+        clearTimeout(resumeTmrRef.current);
+        resumeTmrRef.current = null;
+      }
+      isCoolingRef.current = false;
+
       await html5qrRef.current?.stop();
       await html5qrRef.current?.clear();
     } catch {}
@@ -203,10 +241,10 @@ export default function ScannerPage() {
       } else {
         setLastResult({ kind: "success", title: "ACESSO LIBERADO!", message: json.message || "Check-in ok.", ticket: json.ticket, status: res.status });
       }
-      setHistory(prev => [
+      setHistory(prev => ([
         { ts: new Date().toLocaleTimeString("pt-BR"), value: String(text).slice(0, 28), ok: res.ok, name: json?.ticket?.user?.name ?? "—", status: res.status },
         ...prev,
-      ].slice(0, 12));
+      ].slice(0, 12)));
     } catch (err) {
       setLastResult({ kind: "error", title: "Não consegui ler a foto", message: err?.message || String(err) });
     } finally {
@@ -231,7 +269,10 @@ export default function ScannerPage() {
       } else {
         setLastResult({ kind: "success", title: "ACESSO LIBERADO!", message: json.message || "Check-in ok.", ticket: json.ticket, status: res.status });
       }
-      setHistory(prev => [{ ts: new Date().toLocaleTimeString("pt-BR"), value: String(manual).slice(0, 28), ok: res.ok, name: json?.ticket?.user?.name ?? "—", status: res.status }, ...prev].slice(0, 12));
+      setHistory(prev => ([
+        { ts: new Date().toLocaleTimeString("pt-BR"), value: String(manual).slice(0, 28), ok: res.ok, name: json?.ticket?.user?.name ?? "—", status: res.status },
+        ...prev
+      ].slice(0, 12)));
       setManual("");
     } finally {
       setBusy(false);
@@ -239,7 +280,17 @@ export default function ScannerPage() {
   }, [manual]);
 
   // Cleanup no unmount
-  useEffect(() => () => { stop(); }, [stop]);
+  useEffect(() => {
+    return () => {
+      // encerra scanner e limpa timers/flags
+      if (resumeTmrRef.current) {
+        clearTimeout(resumeTmrRef.current);
+        resumeTmrRef.current = null;
+      }
+      isCoolingRef.current = false;
+      stop();
+    };
+  }, [stop]);
 
   return (
     <RequireAuth fallback={<div className="p-6">Verificando acesso…</div>}>
@@ -405,5 +456,4 @@ export default function ScannerPage() {
       </DashboardLayout>
     </RequireAuth>
   );
-
 }
