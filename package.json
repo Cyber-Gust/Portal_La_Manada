@@ -26,6 +26,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "19.1.14",
     "autoprefixer": "^10.4.21",
     "eslint": "^9",
