@@ -1,10 +1,9 @@
+// src/app/api/ticket/route.js
 import qrcode from 'qrcode';
 
-// A mesma função que monta o HTML, mas agora em JavaScript
+// A função que monta o HTML continua a mesma
 function buildInviteHtml(nome, codigoQr, qrB64) {
     const primeiroNome = nome ? nome.split(' ')[0] : '';
-    
-    // Usamos template literals (crases ``) para montar a string HTML
     return `<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -15,23 +14,22 @@ function buildInviteHtml(nome, codigoQr, qrB64) {
 </head><body><div class="wrap"><div class="card"><div class="hdr"><div class="brand">Legendários Las Campanas — Evento Manada</div><div class="btns"><button class="btn" onclick="location.reload()">Atualizar</button><button class="btn primary" onclick="baixarPDF()">Baixar PDF</button></div></div><div class="hero"><div><span class="pill">Ingresso Pessoal</span><h1 class="title">Olá, ${primeiroNome}!</h1><p class="muted">Este é o seu ingresso oficial. Apresente o QR Code na entrada para validar seu acesso.<br><br>• <strong>Check-in:</strong> a partir das <strong>8:30</strong>. No local, você receberá sua camisa.<br>• <strong>Legendários:</strong> Não se esqueçam da <strong>gorra</strong>! ⚡🧢</p><div class="kpis"><div class="kpi">Código: <strong>${codigoQr}</strong></div><div class="kpi">Titular: <strong>${nome}</strong></div></div></div><div class="qrbox"><img alt="QR de acesso para o Evento Manada" src="${qrB64}"/></div></div><div class="foot"><span class="muted">Guarde este link. Você pode baixar em PDF quando quiser.</span><button class="btn" onclick="baixarPDF()">Baixar PDF</button></div></div></div></body></html>`;
 }
 
-export default async function handler(req, res) {
-    const { data } = req.query;
+// Exporta uma função chamada GET para lidar com requisições GET
+export async function GET(request) {
+    // Pega os parâmetros da URL de uma nova forma
+    const searchParams = request.nextUrl.searchParams;
+    const data = searchParams.get('data');
 
-    if (!data || typeof data !== 'string') {
-        return res.status(400).send("Erro: Parâmetro 'data' não encontrado ou inválido.");
+    if (!data) {
+        return new Response("Erro: Parâmetro 'data' não encontrado.", { status: 400 });
     }
 
     try {
-        // O script Python usa 'urlsafe_b64encode', que troca '+' por '-' e '/' por '_'.
-        // Precisamos reverter isso antes de decodificar.
         const base64 = data.replace(/-/g, '+').replace(/_/g, '/');
         const decodedData = Buffer.from(base64, 'base64').toString('utf-8');
         const userData = JSON.parse(decodedData);
-
         const { nome, codigoqr } = userData;
 
-        // Gera o QR Code diretamente no formato que a tag <img> precisa
         const qrB64 = await qrcode.toDataURL(codigoqr, {
             errorCorrectionLevel: 'H',
             margin: 2,
@@ -40,12 +38,16 @@ export default async function handler(req, res) {
 
         const htmlContent = buildInviteHtml(nome, codigoqr, qrB64);
 
-        // Envia a resposta como um documento HTML
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.status(200).send(htmlContent);
+        // Retorna uma nova Resposta com o HTML
+        return new Response(htmlContent, {
+            status: 200,
+            headers: {
+                'Content-Type': 'text/html; charset=utf-8',
+            },
+        });
 
     } catch (error) {
         console.error("Erro ao gerar ingresso:", error);
-        res.status(500).send('Erro interno no servidor ao processar o ingresso.');
+        return new Response('Erro interno no servidor ao processar o ingresso.', { status: 500 });
     }
 }
